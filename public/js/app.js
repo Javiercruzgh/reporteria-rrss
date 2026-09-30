@@ -34,17 +34,29 @@ async function vistaMes(el) {
   let mes = /^\d{4}-\d{2}$/.test(param('mes') || '') ? param('mes') : mesPorDefecto();
   el.innerHTML = `
     <div class="cabeza"><div><span class="label pk">DigitalLabs · reportes mensuales</span><h1>Reportería <em>RRSS</em></h1></div>
-      <div class="acciones mes-sel"><button class="btn sm" data-m="-1" aria-label="Mes anterior">←</button><b id="mes"></b><button class="btn sm" data-m="1" aria-label="Mes siguiente">→</button></div></div>
+      <div class="acciones mes-sel"><button class="btn sm" data-m="-1" aria-label="Mes anterior">←</button><b id="mes"></b><button class="btn sm" data-m="1" aria-label="Mes siguiente">→</button>
+        <button class="btn pk" id="nuevo">+ Nuevo reporte</button></div></div>
     <div id="avisos"></div>
     <div class="grilla" id="grilla">${cargando('Cargando clientes…')}</div>`;
   const grilla = $('#grilla', el);
+  let clientes = [];
+  $('#nuevo', el).onclick = async () => {
+    const libres = clientes.filter(c => !c.reporte);
+    const r = await dialogo(`<form class="form"><h2>Nuevo reporte · ${esc(tituloMes(mes))}</h2>
+      ${libres.length ? `<label class="campo">¿Para qué cliente?<select name="cliente" required autofocus>${libres.map(c => `<option value="${esc(c.id)}">${esc(c.nombre)}</option>`).join('')}</select></label>` : '<p class="nota">Todos los clientes ya tienen su reporte de este mes.</p>'}
+      <p class="nota">¿La marca no está? Agrégala desde la lista de Metricool en <a class="enlace" href="#clientes?nuevo=1">Clientes → Nuevo cliente</a>.</p>
+      <p class="aviso crit" data-error hidden></p>
+      <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button>${libres.length ? '<button class="btn pk">Crear reporte</button>' : ''}</div></form>`,
+      { alEnviar: f => api('/api/reportes', { method: 'POST', body: { cliente: f.cliente, mes } }) });
+    if (r?.id) location.hash = 'reporte/' + r.id;
+  };
   $$('[data-m]', el).forEach(b => b.onclick = () => { mes = moverMes(mes, +b.dataset.m); history.replaceState(null, '', '#reportes?mes=' + mes); cargar(); });
   api('/api/estado').then(s => { $('#avisos', el).innerHTML = [s.metricool.aviso, s.ia.aviso].filter(Boolean).map(a => `<p class="aviso warn">${esc(a)}</p>`).join(''); }).catch(() => {});
 
   async function cargar() {
     $('#mes', el).textContent = tituloMes(mes);
     try {
-      const { clientes } = await api('/api/reportes?mes=' + mes);
+      ({ clientes } = await api('/api/reportes?mes=' + mes));
       grilla.innerHTML = clientes.length ? clientes.map(c => {
         const r = c.reporte, marcas = c.config.marcas.filter(m => m.activa !== false);
         return `<article class="card cli" ${r ? `data-abrir="${esc(r.id)}" tabindex="0"` : ''}>
@@ -54,7 +66,7 @@ async function vistaMes(el) {
           <div class="meta">${r ? `<span>${r.datosEn ? `Datos del ${esc(fechaHora(r.datosEn))}` : 'Sin datos todavía'}</span><span>${esc(corto(r.editadoPor))}</span>`
             : `<button class="btn sm pk" data-crear="${esc(c.id)}">Crear reporte</button>`}</div>
         </article>`;
-      }).join('') : vacio('No hay clientes', 'Agrégalos en la pestaña Clientes.');
+      }).join('') : vacio('Todavía no hay clientes', 'Agrega el primero eligiendo sus marcas de Metricool.', '<a class="btn pk" href="#clientes?nuevo=1">+ Nuevo cliente</a>');
       $$('[data-abrir]', grilla).forEach(a => { a.onclick = () => location.hash = 'reporte/' + a.dataset.abrir; a.onkeydown = e => e.key === 'Enter' && a.click(); });
       $$('[data-crear]', grilla).forEach(b => b.onclick = e => { e.stopPropagation(); crear(b); });
     } catch (e) { grilla.innerHTML = fallo(e); $('[data-reintentar]', grilla)?.addEventListener('click', cargar); }
@@ -92,7 +104,7 @@ async function vistaReporte(el, id) {
       <div class="herramientas no-imprimir">
         <button class="btn ${sinDatos ? 'pk' : ''}" data-a="datos" title="Trae de Metricool el mes y el mismo tramo del mes anterior">↻ Actualizar datos</button>
         <button class="btn" data-a="proponer" ${sinDatos || R.ia.modo === 'apagado' ? 'disabled' : ''} title="${esc(R.ia.aviso || 'Claude redacta los textos vacíos. Tú los revisas y corriges.')}">✦ Proponer textos</button>
-        ${M.conEscucha ? `<button class="btn" data-a="escucha" ${R.ia.modo === 'apagado' ? 'disabled' : ''} title="Sube el PDF mensual de Brandwatch; Claude lo lee y arma las láminas">⇪ Subir Brandwatch</button>` : ''}
+        ${M.secciones.some(x => x.tipo === 'escucha') ? `<button class="btn" data-a="escucha" ${R.ia.modo === 'apagado' ? 'disabled' : ''} title="Sube el PDF mensual de Brandwatch; Claude lo lee y arma las láminas">⇪ Subir Brandwatch</button>` : ''}
         <button class="btn" data-a="presentar" ${sinDatos ? 'disabled' : ''}>▶ Presentar</button>
         <span class="sep"></span>
         ${R.estado === 'listo'
@@ -101,6 +113,7 @@ async function vistaReporte(el, id) {
         <details class="mas"><summary class="btn">Más</summary><div class="menu">
           <button data-a="proponerTodo" ${sinDatos || R.ia.modo === 'apagado' ? 'disabled' : ''}>Reescribir todos los textos con IA</button>
           <button data-a="importar">Importar datos (JSON)</button>
+          <button data-a="restablecer" ${M.seccionesPropias ? '' : 'disabled'}>Volver a la propuesta de láminas</button>
           <button data-a="pdf" ${sinDatos ? 'disabled' : ''}>Guardar en PDF</button>
           <button data-a="nuevoLink">Cambiar el link del cliente</button>
           <button data-a="papelera" class="rojo">Mandar a la papelera</button>
@@ -110,11 +123,11 @@ async function vistaReporte(el, id) {
       ${R.metricool.aviso && (R.datosOrigen === 'simulado' || !R.datosEn) ? `<p class="aviso warn">${esc(R.metricool.aviso)}</p>` : ''}
       ${M.simulado ? '<p class="aviso warn">Estos números son inventados (modo de prueba). No compartas este reporte.</p>' : ''}
       ${sinDatos ? vacio('Este reporte todavía no tiene datos', 'Actualiza los datos para traer de Metricool el mes y el mismo tramo del mes anterior.', '<button class="btn pk" data-a="datos">↻ Actualizar datos</button>')
-        : `<p class="nota ayuda">Así lo verá el cliente. Haz clic en cualquier texto para escribirlo; se guarda solo. <b>**negrita**</b> y línea en blanco para un párrafo nuevo. ${faltan()}</p>
+        : `<p class="nota ayuda">Así lo verá el cliente. Haz clic en cualquier texto para escribirlo; se guarda solo. Con las flechas y «+ Agregar lámina» armas el reporte a tu medida. <b>**negrita**</b> y línea en blanco para un párrafo nuevo. ${faltan()}</p>
            <div class="laminas" id="laminas">${laminas(M, { textos: R.textos, editable: true, claves: R.claves })}</div>`}`;
     $$('[data-a]', el).forEach(b => b.onclick = () => { b.closest('details')?.removeAttribute('open'); ACC[b.dataset.a](b); });
     $('#hasta', el).onchange = e => cambiarHasta(e.target);
-    const ls = $('#laminas', el); if (ls) conectarTextos(ls);
+    const ls = $('#laminas', el); if (ls) { conectarTextos(ls); controlesLaminas(ls); }
   }
   const faltan = () => { const n = R.claves.filter(k => !(R.textos[k.clave] || '').trim()).length; return n ? `Faltan <b>${plural(n, 'texto', 'textos')}</b>.` : 'Todos los textos están escritos.'; };
 
@@ -172,6 +185,10 @@ async function vistaReporte(el, id) {
       });
       if (d) { R = d; pintar(); toast('Datos importados.'); }
     },
+    async restablecer() {
+      if (!await confirmar({ titulo: '¿Volver a la propuesta de láminas?', texto: 'Las láminas vuelven a las que propone la herramienta según los datos. Los textos de las láminas que se mantienen no se pierden.', boton: 'Volver a la propuesta' })) return;
+      trabajar('Guardando…', async () => { R = await api('/api/reportes/' + id, { method: 'PATCH', body: { secciones: null } }); toast('Láminas como en la propuesta.'); });
+    },
     async papelera() {
       if (!await confirmar({ titulo: '¿Mandar este reporte a la papelera?', texto: 'El link del cliente deja de funcionar. Se puede restaurar desde la Papelera.', boton: 'Mandar a la papelera', peligro: true })) return;
       try { await api('/api/reportes/' + id, { method: 'DELETE' }); toast('Reporte en la papelera.'); location.hash = 'reportes?mes=' + R.mes; } catch (e) { toast(e.message, true); }
@@ -186,6 +203,73 @@ async function vistaReporte(el, id) {
       R = await api('/api/reportes/' + id, { method: 'PATCH', body: { hasta: inp.value } });
       pintar(); toast('Fecha de corte cambiada. Actualiza los datos para recalcular.');
     } catch (e) { toast(e.message, true); inp.value = R.hasta; }
+  }
+
+  /* láminas: subir, bajar, quitar y agregar desde el catálogo */
+  function controlesLaminas(ls) {
+    const vistas = new Set();
+    $$('.lamina[data-sec]', ls).forEach(l => {
+      const sid = l.dataset.sec; if (vistas.has(sid)) return; vistas.add(sid);
+      const i = R.modelo.secciones.findIndex(x => x.id === sid);
+      l.insertAdjacentHTML('afterbegin', `<div class="sec-ctl no-imprimir"><span>${i + 1}</span>
+        <button data-mover="-1" ${i === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir lámina">↑</button>
+        <button data-mover="1" ${i === R.modelo.secciones.length - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar lámina">↓</button>
+        <button data-quitar title="Quitar lámina" aria-label="Quitar lámina">✕</button></div>`);
+      const ultima = [...ls.querySelectorAll(`.lamina[data-sec="${CSS.escape(sid)}"]`)].at(-1);
+      const siguiente = ultima.nextElementSibling;
+      (siguiente?.classList.contains('lamina') && !siguiente.dataset.sec ? siguiente : ultima).insertAdjacentHTML('afterend', `<button class="agregar no-imprimir" data-despues="${esc(sid)}">+ Agregar lámina</button>`);
+    });
+    if (!R.modelo.secciones.length) ls.innerHTML = '<button class="agregar no-imprimir" data-despues="">+ Agregar lámina</button>';
+    ls.addEventListener('click', e => {
+      const b = e.target.closest('[data-mover],[data-quitar],[data-despues]'); if (!b) return;
+      e.stopPropagation();
+      const lista = R.modelo.secciones.map(x => ({ ...x }));
+      if (b.dataset.despues != null) return agregarLamina(lista, b.dataset.despues);
+      const sid = b.closest('.lamina').dataset.sec, i = lista.findIndex(x => x.id === sid);
+      if (b.dataset.quitar != null) {
+        lista.splice(i, 1);
+        return guardarSecciones(lista, 'Lámina quitada. Sus textos quedan guardados por si la vuelves a agregar.');
+      }
+      const j = i + +b.dataset.mover; [lista[i], lista[j]] = [lista[j], lista[i]];
+      guardarSecciones(lista, '', sid);
+    });
+  }
+  async function guardarSecciones(lista, aviso = '', enfocar = '') {
+    await trabajar('Guardando las láminas…', async () => {
+      R = await api('/api/reportes/' + id, { method: 'PATCH', body: { secciones: lista } });
+      if (aviso) toast(aviso);
+    });
+    if (enfocar) $(`.lamina[data-sec="${CSS.escape(enfocar)}"]`, el)?.scrollIntoView({ block: 'center' });
+  }
+  async function agregarLamina(lista, despues) {
+    const marcas = R.modelo.marcasCliente || [];
+    const NOMBRE_RED = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', youtube: 'YouTube' };
+    const r = await dialogo(`<form class="form ancho"><h2>Agregar lámina</h2>
+      <div class="catalogo">${R.catalogo.map((c, i) => `<label class="cat"><input type="radio" name="tipo" value="${esc(c.tipo)}" ${i === 0 ? 'required' : ''}><span><b>${esc(c.nombre)}</b><small>${esc(c.desc)}</small></span></label>`).join('')}</div>
+      <div class="dos" id="params">
+        <label class="campo" data-p="marca">Marca<select name="marca">${marcas.map(m => `<option value="${esc(m.id)}">${esc(m.nombre)}</option>`).join('')}</select></label>
+        <label class="campo" data-p="red">Red<select name="red"></select></label>
+      </div>
+      <p class="aviso crit" data-error hidden></p>
+      <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Agregar</button></div></form>`, {
+      alAbrir: d => {
+        const redes = () => { const m = marcas.find(x => x.id === $('[name=marca]', d).value); $('[name=red]', d).innerHTML = (m?.redes || []).map(x => `<option value="${x}">${NOMBRE_RED[x] || x}</option>`).join(''); };
+        const ver = () => {
+          const c = R.catalogo.find(x => x.tipo === $('[name=tipo]:checked', d)?.value), pide = c?.pide || [];
+          $$('[data-p]', d).forEach(p => { const no = !pide.includes(p.dataset.p); p.style.display = no ? 'none' : ''; $('select', p).disabled = no; });
+        };
+        d.addEventListener('change', e => { if (e.target.name === 'marca') redes(); ver(); });
+        redes(); ver();
+      },
+      alEnviar: f => {
+        if (!f.tipo) throw new Error('Elige qué lámina agregar.');
+        const nueva = { id: 's' + Math.random().toString(36).slice(2, 10), tipo: f.tipo, ...(f.marca ? { marca: f.marca } : {}), ...(f.red ? { red: f.red } : {}) };
+        const i = despues ? lista.findIndex(x => x.id === despues) + 1 : lista.length;
+        lista.splice(i, 0, nueva);
+        return nueva;
+      }
+    });
+    if (r) await guardarSecciones(lista, 'Lámina agregada.', r.id);
   }
 
   /* textos: clic para editar; al salir del texto se guarda */
@@ -229,7 +313,7 @@ async function vistaReporte(el, id) {
 async function vistaClientes(el) {
   el.innerHTML = `<div class="cabeza"><div><span class="label pk">Reportería RRSS</span><h1>Clientes</h1></div>
       <div class="acciones"><button class="btn pk" id="nuevo">+ Nuevo cliente</button></div></div>
-    <p class="nota">Qué marcas se reportan, su número en Metricool, sus redes y los lineamientos que sigue la IA al redactar. Los cambios valen para los reportes que se actualicen después.</p>
+    <p class="nota">Cada cliente agrupa las marcas de Metricool que se reportan juntas (por ejemplo, las submarcas de Achs), con sus redes y los lineamientos que sigue la IA al redactar. Los cambios valen para los reportes que se actualicen después.</p>
     <div class="grilla" id="grilla">${cargando()}</div>`;
   const grilla = $('#grilla', el);
   let lista = [];
@@ -243,12 +327,31 @@ async function vistaClientes(el) {
       $$('[data-id]', grilla).forEach(a => { a.onclick = () => editar(lista.find(c => c.id === a.dataset.id)); a.onkeydown = e => e.key === 'Enter' && a.click(); });
     } catch (e) { grilla.innerHTML = fallo(e); $('[data-reintentar]', grilla)?.addEventListener('click', cargar); }
   }
-  $('#nuevo', el).onclick = async () => {
-    const r = await dialogo(`<form class="form"><h2>Nuevo cliente</h2><label class="campo">Nombre<input name="nombre" required maxlength="60" autofocus></label>
-      <p class="aviso crit" data-error hidden></p><div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Crear</button></div></form>`,
-      { alEnviar: d => api('/api/clientes', { method: 'POST', body: d }) });
-    if (r) { toast('Cliente creado. Completa su número de Metricool.'); await cargar(); editar(lista.find(c => c.id === r.id)); }
-  };
+  async function nuevoCliente() {
+    let lista = [], aviso = '';
+    try { lista = (await api('/api/metricool/marcas')).marcas; } catch (e) { aviso = e.message; }
+    const usadas = new Set(lista.length ? (await api('/api/clientes')).clientes.flatMap(c => c.config.marcas.map(m => m.blogId)) : []);
+    const r = await dialogo(`<form class="form ancho"><h2>Nuevo cliente</h2>
+      <label class="campo">Nombre del cliente<input name="nombre" required maxlength="60" autofocus></label>
+      ${lista.length ? `<span class="label">Marcas de Metricool que se reportan juntas</span>
+        <label class="buscar"><input type="search" id="filtro" placeholder="Buscar marca" aria-label="Buscar marca"></label>
+        <div class="marcas-mc">${lista.map(m => `<label class="campo check" data-n="${esc(m.nombre.toLowerCase())}"><input type="checkbox" name="mc" value="${esc(m.blogId)}"> ${esc(m.nombre)} <small>${esc(m.redes.join(', ') || 'sin redes detectadas')}${usadas.has(m.blogId) ? ' · ya está en otro cliente' : ''}</small></label>`).join('')}</div>`
+        : `<p class="aviso warn">${esc(aviso || 'Metricool no devolvió marcas.')} Puedes crear el cliente y completar sus marcas a mano después.</p>`}
+      <p class="aviso crit" data-error hidden></p>
+      <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Crear cliente</button></div></form>`, {
+      alAbrir: d => {
+        $('#filtro', d)?.addEventListener('input', e => { const q = e.target.value.toLowerCase(); $$('[data-n]', d).forEach(x => { x.style.display = x.dataset.n.includes(q) ? '' : 'none'; }); });
+        d.addEventListener('change', e => { if (e.target.name === 'mc' && !$('[name=nombre]', d).value) $('[name=nombre]', d).value = lista.find(m => m.blogId === e.target.value)?.nombre || ''; });
+      },
+      alEnviar: f => {
+        const ids = [].concat(f.mc || []);
+        const marcas = lista.filter(m => ids.includes(m.blogId)).map(m => ({ nombre: m.nombre, blogId: m.blogId, redes: m.redes.length ? m.redes : ['instagram'] }));
+        return api('/api/clientes', { method: 'POST', body: { nombre: f.nombre, marcas } });
+      }
+    });
+    if (r) { toast('Cliente creado. Revisa sus redes y lineamientos.'); await cargar(); editar(r); }
+  }
+  $('#nuevo', el).onclick = nuevoCliente;
 
   const filaMarca = (m = {}) => `<fieldset class="marca-f">
     <div class="dos"><label class="campo">Marca<input data-k="nombre" value="${esc(m.nombre)}" required maxlength="60"></label>
@@ -296,6 +399,7 @@ async function vistaClientes(el) {
     if (r) { toast(r.papelera ? 'Cliente en la papelera.' : 'Cliente guardado.'); cargar(); }
   }
   await cargar();
+  if (param('nuevo')) { history.replaceState(null, '', '#clientes'); nuevoCliente(); }
 }
 
 /* ============================================================ papelera */

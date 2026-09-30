@@ -15,7 +15,7 @@ const P = await import('../lib/periodos.js');
 const K = await import('../lib/calculos.js');
 const { clavesTexto, limpiarTextos } = await import('../lib/textos.js');
 const { validarConfig } = await import('../lib/clientes.js');
-const { CLIENTES_INICIALES } = await import('../lib/clientes-iniciales.js');
+const S = await import('../lib/secciones.js');
 
 /** Lee la configuración en un proceso aparte, con otras variables de entorno. */
 function config(env) {
@@ -120,17 +120,44 @@ test('cálculos: LinkedIn suma los clics a las interacciones', () => {
   assert.equal(k.interacciones.v, 20); assert.equal(k.engagement.v, 2);
 });
 
-test('modelo completo: Achs trae resumen por marca, social listening y sus claves de texto', () => {
-  const achs = CLIENTES_INICIALES.find(c => c.id === 'achs');
+const ACHS = { id: 'achs', nombre: 'Achs', config: { escucha: true, reglas: { pautaTiktok: 50000 }, marcas: [
+  { id: 'seguro-laboral', nombre: 'Seguro Laboral', redes: ['instagram', 'tiktok'] }, { id: 'salud', nombre: 'Achs Salud', redes: ['instagram'] },
+  { id: 'hospital', nombre: 'Hospital', redes: ['instagram'] }, { id: 'segurito', nombre: 'Segurito', redes: ['instagram'] },
+  { id: 'masterbrand', nombre: 'Masterbrand', redes: ['linkedin'], activa: false }] } };
+const modeloAchs = (extra = {}) => {
   const d = { actual: { redes: { instagram: { comunidad: 1, posts: [], reels: [], historias: [] } } }, anterior: { redes: {} } };
-  const datos = Object.fromEntries(achs.config.marcas.map(m => [m.id, d]));
-  const M = K.modelo(achs, { mes: '2026-09', desde: '2026-09-01', hasta: '2026-09-28', anterior: P.periodo('2026-09', '2026-09-28').anterior, datos, escucha: { menciones: 5 } });
-  assert.equal(M.marcas.length, 4, 'Masterbrand no se reporta');
+  return K.modelo(ACHS, { mes: '2026-09', desde: '2026-09-01', hasta: '2026-09-28', anterior: P.periodo('2026-09', '2026-09-28').anterior,
+    datos: Object.fromEntries(ACHS.config.marcas.map(m => [m.id, d])), ...extra });
+};
+
+test('láminas: la propuesta sale de los datos, sin nada fijo por marca', () => {
+  const M = modeloAchs({ escucha: { menciones: 5 } });
+  assert.equal(M.marcas.length, 4, 'la marca inactiva no se reporta');
   assert.equal(M.resumen.filas.length, 4);
   assert.equal(M.titulo, 'Septiembre 2026'); assert.equal(M.mesAnterior, 'agosto');
+  assert.equal(M.seccionesPropias, false);
+  const tipos = M.secciones.map(x => x.tipo);
+  assert.deepEqual(tipos.slice(0, 2), ['portada', 'resumen']); assert.deepEqual(tipos.slice(-3), ['escucha', 'notas', 'gracias']);
+  assert.equal(tipos.filter(t => t === 'divisor').length, 4, 'con varias marcas, un separador por marca');
   const claves = clavesTexto(M).map(c => c.clave);
-  assert.ok(claves.includes('general.resumen') && claves.includes('escucha.lectura') && claves.includes('salud.instagram.lectura') && claves.includes('segurito.testear'));
-  assert.deepEqual(limpiarTextos({ 'general.resumen': ' hola ', 'otra.cosa': 'x' }, claves), { 'general.resumen': 'hola' }, 'solo claves conocidas');
+  assert.ok(claves.includes('resumen.texto') && claves.includes('escucha.lectura') && claves.includes('salud-instagram.lectura') && claves.includes('segurito-optimizaciones.testear'));
+  assert.deepEqual(limpiarTextos({ 'resumen.texto': ' hola ', 'otra.cosa': 'x' }, claves), { 'resumen.texto': 'hola' }, 'solo claves conocidas');
+  const una = K.modelo({ id: 'x', nombre: 'X', config: { marcas: [{ id: 'x', nombre: 'X', redes: ['instagram'] }] } }, { mes: '2026-09', desde: '2026-09-01', hasta: '2026-09-28', anterior: P.periodo('2026-09', '2026-09-28').anterior, datos: { x: { actual: { redes: { instagram: {} } }, anterior: { redes: {} } } } });
+  assert.ok(!una.secciones.some(x => x.tipo === 'divisor' || x.tipo === 'escucha'), 'una marca sin social listening: sin separadores ni escucha');
+});
+
+test('láminas: el equipo arma su lista y se valida contra las marcas del cliente', () => {
+  const lista = S.validar([{ id: 'portada', tipo: 'portada' }, { tipo: 'red', marca: 'salud', red: 'instagram' }, { tipo: 'libre' }, { tipo: 'escucha' }], ACHS);
+  assert.equal(lista.length, 4); assert.match(lista[1].id, /^s[0-9a-f]{8}$/, 'las nuevas reciben id');
+  assert.throws(() => S.validar([{ tipo: 'inventada' }], ACHS), /tipo desconocido/);
+  assert.throws(() => S.validar([{ tipo: 'hallazgo' }], ACHS), /Elige una marca/);
+  assert.throws(() => S.validar([{ tipo: 'red', marca: 'salud', red: 'tiktok' }], ACHS), /no tiene esa red/);
+  assert.throws(() => S.validar([{ id: 'a', tipo: 'portada' }, { id: 'a', tipo: 'gracias' }], ACHS), /mismo identificador/);
+  const M = modeloAchs({ secciones: lista });
+  assert.equal(M.seccionesPropias, true);
+  const claves = clavesTexto(M);
+  assert.deepEqual(claves.map(c => c.clave), [`${lista[1].id}.lectura`, `${lista[2].id}.titulo`, `${lista[2].id}.texto`], 'sin PDF, la escucha no pide texto');
+  assert.equal(claves.find(c => c.clave.endsWith('.titulo')).ia, false, 'la IA no inventa láminas de texto libre');
 });
 
 test('clientes: la configuración se valida antes de guardarse', () => {

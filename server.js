@@ -9,7 +9,7 @@ import { registrar } from './lib/db.js';
 import { sesion, verificarGoogle, cookieSesion, cookieSalir } from './lib/auth.js';
 import * as reportes from './lib/reportes.js';
 import * as clientes from './lib/clientes.js';
-import { estado as estadoMetricool } from './lib/metricool.js';
+import { estado as estadoMetricool, listarMarcas } from './lib/metricool.js';
 import { estado as estadoIa } from './lib/ia.js';
 import { leer as leerHerramienta } from './lib/herramienta.js';
 
@@ -96,6 +96,7 @@ async function manejar(req, res) {
   if (ruta === '/api/estado') return enviar(res, 200, { metricool: estadoMetricool(), ia: estadoIa() });
 
   // ---- clientes (marcas, redes, reglas y lineamientos)
+  if (ruta === '/api/metricool/marcas') return enviar(res, 200, { marcas: await listarMarcas() });
   if (ruta === '/api/clientes' && M === 'GET') return enviar(res, 200, { clientes: clientes.listar() });
   if (ruta === '/api/clientes' && M === 'POST') return enviar(res, 201, clientes.crear(u, await leerJson(req)));
   if (partes[0] === 'api' && partes[1] === 'clientes' && partes[2]) {

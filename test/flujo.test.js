@@ -33,6 +33,9 @@ async function levantar(usuario, datos = temporal(), env = {}) {
   return { B, j, txt, datos, parar: () => new Promise(r => { srv.once('exit', r); srv.kill(); }) };
 }
 
+const marca = (nombre, blogId, redes = ['instagram', 'tiktok']) => ({ nombre, blogId, redes });
+const nuevoCliente = (s, nombre, marcas = [marca(nombre, '4369569')], extra = {}) => s.j('/api/clientes', { method: 'POST', body: { nombre, marcas, ...extra } }).then(r => r.body);
+
 test('local: crear un reporte, traer datos, escribir textos, marcar listo y compartir el link', async () => {
   const s = await levantar('pruebas@monkeylabs.cl');
   try {
@@ -41,9 +44,11 @@ test('local: crear un reporte, traer datos, escribir textos, marcar listo y comp
     const est = (await s.j('/api/estado')).body;
     assert.equal(est.metricool.modo, 'simulado'); assert.equal(est.ia.modo, 'simulado');
 
+    assert.deepEqual((await s.j('/api/reportes?mes=2026-09')).body.clientes, [], 'parte vacía: no hay marcas fijas');
+    assert.equal((await s.j('/api/metricool/marcas')).body.marcas.length, 3, 'la lista de marcas de Metricool (simulada)');
+    assert.equal((await nuevoCliente(s, 'Alflorex')).id, 'alflorex');
     const grilla = (await s.j('/api/reportes?mes=2026-09')).body;
-    assert.deepEqual(grilla.clientes.map(c => c.id), ['achs', 'alflorex', 'muno', 'pesas-chile', 'stp', 'wurtex']);
-    assert.ok(grilla.clientes.every(c => c.reporte === null));
+    assert.deepEqual(grilla.clientes.map(c => [c.id, c.reporte]), [['alflorex', null]]);
     assert.equal((await s.j('/api/reportes?mes=sept')).status, 400);
 
     const r = (await s.j('/api/reportes', { method: 'POST', body: { cliente: 'alflorex', mes: '2026-09', hasta: '2026-09-28' } })).body;
@@ -60,19 +65,29 @@ test('local: crear un reporte, traer datos, escribir textos, marcar listo y comp
     assert.ok(d.claves.length >= 8);
 
     // textos: se mezclan por clave y no se pisan cambios ajenos
-    const t1 = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { 'general.resumen': 'Hola **mundo**', 'inventada': 'x' }, rev: d.rev, base: { 'general.resumen': '' } } })).body;
-    assert.deepEqual(t1.textos, { 'general.resumen': 'Hola **mundo**' });
-    const choque = await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { 'general.resumen': 'Otra versión' }, rev: d.rev, base: { 'general.resumen': '' } } });
-    assert.equal(choque.status, 409); assert.deepEqual(choque.body.claves, ['general.resumen']);
-    const otro = await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { 'alflorex.hallazgo': 'Idea' }, rev: d.rev, base: { 'alflorex.hallazgo': '' } } });
+    const t1 = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { 'resumen.texto': 'Hola **mundo**', 'inventada': 'x' }, rev: d.rev, base: { 'resumen.texto': '' } } })).body;
+    assert.deepEqual(t1.textos, { 'resumen.texto': 'Hola **mundo**' });
+    const choque = await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { 'resumen.texto': 'Otra versión' }, rev: d.rev, base: { 'resumen.texto': '' } } });
+    assert.equal(choque.status, 409); assert.deepEqual(choque.body.claves, ['resumen.texto']);
+    const otro = await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { 'alflorex-hallazgo.hallazgo': 'Idea' }, rev: d.rev, base: { 'alflorex-hallazgo.hallazgo': '' } } });
     assert.equal(otro.status, 200, 'otro texto sí se puede guardar con la versión vieja');
 
     const p = (await s.j(`/api/reportes/${r.id}/proponer`, { method: 'POST', body: {} })).body;
-    assert.ok(!p.propuestos.includes('general.resumen') && !p.propuestos.includes('alflorex.hallazgo'), 'no toca lo que ya escribió el equipo');
-    assert.equal(p.textos['general.resumen'], 'Hola **mundo**');
+    assert.ok(!p.propuestos.includes('resumen.texto') && !p.propuestos.includes('alflorex-hallazgo.hallazgo'), 'no toca lo que ya escribió el equipo');
+    assert.equal(p.textos['resumen.texto'], 'Hola **mundo**');
     assert.ok(p.claves.every(k => p.textos[k.clave]), 'llenó los vacíos');
 
-    assert.equal((await s.j(`/api/reportes/${r.id}/escucha`, { method: 'POST', body: Buffer.from('%PDF-1.4') })).status, 400, 'Alflorex no tiene social listening');
+    // armar las láminas: quitar, agregar desde el catálogo y volver a la propuesta
+    const propuestas = p.modelo.secciones;
+    assert.ok(!propuestas.some(x => x.tipo === 'escucha'), 'sin social listening en la propuesta');
+    const armadas = [...propuestas.filter(x => x.tipo !== 'competencia'), { tipo: 'libre' }, { tipo: 'escucha' }];
+    const ar = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: armadas } })).body;
+    assert.equal(ar.modelo.seccionesPropias, true);
+    assert.deepEqual(ar.modelo.secciones.slice(-2).map(x => x.tipo), ['libre', 'escucha']);
+    assert.equal((await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: [{ tipo: 'red', marca: 'otra', red: 'instagram' }] } })).status, 400);
+    const conPdf = (await s.j(`/api/reportes/${r.id}/escucha`, { method: 'POST', body: Buffer.from('%PDF-1.4') })).body;
+    assert.ok(conPdf.claves.some(k => k.clave === 'escucha.lectura') === false && conPdf.claves.some(k => /^s[0-9a-f]{8}\.lectura$/.test(k.clave)), 'la escucha agregada pide su lectura');
+    assert.equal((await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: null } })).body.modelo.seccionesPropias, false);
 
     // link del cliente: no existe hasta que está listo
     const token = p.link.split('/r/')[1];
@@ -80,7 +95,7 @@ test('local: crear un reporte, traer datos, escribir textos, marcar listo y comp
     const listo = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { estado: 'listo' } })).body;
     assert.equal(listo.estado, 'listo');
     const pub = (await s.j('/api/publico/' + token)).body;
-    assert.equal(pub.modelo.cliente.nombre, 'Alflorex'); assert.equal(pub.textos['general.resumen'], 'Hola **mundo**');
+    assert.equal(pub.modelo.cliente.nombre, 'Alflorex'); assert.equal(pub.textos['resumen.texto'], 'Hola **mundo**');
     assert.ok(!JSON.stringify(pub).includes('pruebas@monkeylabs.cl'), 'el cliente no ve quién editó');
     const pag = await s.txt('/r/' + token);
     assert.equal(pag.status, 200); assert.match(pag.texto, /publico\/cliente\.js/);
@@ -108,6 +123,9 @@ test('local: crear un reporte, traer datos, escribir textos, marcar listo y comp
 test('Achs: cuatro marcas y social listening desde el PDF de Brandwatch', async () => {
   const s = await levantar('pruebas@monkeylabs.cl');
   try {
+    const achs = await nuevoCliente(s, 'Achs', [marca('Seguro Laboral', '3235334', ['instagram', 'tiktok', 'linkedin', 'facebook']), marca('Achs Salud', '3235336'),
+      marca('Hospital del Trabajador', '3235338', ['instagram', 'linkedin', 'facebook']), marca('Segurito', '3235340', ['instagram', 'tiktok', 'facebook', 'youtube'])], { escucha: true });
+    await s.j('/api/clientes/achs', { method: 'PATCH', body: { config: { ...achs.config, reglas: { pautaTiktok: 50000 } } } });
     const r = (await s.j('/api/reportes', { method: 'POST', body: { cliente: 'achs', mes: '2026-09' } })).body;
     await s.j(`/api/reportes/${r.id}/datos`, { method: 'POST' });
     assert.equal((await s.j(`/api/reportes/${r.id}/escucha`, { method: 'POST', body: Buffer.from('no es pdf') })).status, 400);
@@ -125,6 +143,7 @@ test('clientes: el equipo edita marcas y lineamientos; la papelera de clientes e
   const b = await levantar('camila@monkeylabs.cl', datos);
   try {
     assert.equal((await b.j('/api/yo')).body.admin, false);
+    await nuevoCliente(b, 'Muno', [marca('Muno', '4323563')]);
     const c = (await b.j('/api/clientes/muno')).body;
     const ed = await b.j('/api/clientes/muno', { method: 'PATCH', body: { config: { ...c.config, lineamientos: 'Tono fresco.', marcas: [{ ...c.config.marcas[0], blogId: 'x1' }] } } });
     assert.equal(ed.status, 400);
@@ -156,11 +175,12 @@ test('franja: en local y en pruebas sí (también en el link del cliente), y pru
   try {
     assert.equal((await pruebas.j('/api/config')).body.modo, 'pruebas');
     assert.match((await pruebas.txt('/login.html')).texto, /<title>PRUEBAS · Entrar/);
+    await nuevoCliente(pruebas, 'STP', [marca('STP', '6962385')]);
     await pruebas.j('/api/reportes', { method: 'POST', body: { cliente: 'stp', mes: '2026-09' } });
   } finally { await pruebas.parar(); }
   assert.ok(fs.existsSync(path.join(datos, 'herramienta-local.sqlite')) && fs.existsSync(path.join(datos, 'herramienta-pruebas.sqlite')), 'una base por modo');
   const otra = await levantar('pruebas@monkeylabs.cl', datos);
-  try { assert.equal((await otra.j('/api/reportes?mes=2026-09')).body.clientes.find(c => c.id === 'stp').reporte, null, 'lo de pruebas no aparece en local'); } finally { await otra.parar(); }
+  try { assert.deepEqual((await otra.j('/api/reportes?mes=2026-09')).body.clientes, [], 'lo de pruebas no aparece en local'); } finally { await otra.parar(); }
 });
 
 test('producción: sin sesión solo se ve el login y el link del cliente', async () => {

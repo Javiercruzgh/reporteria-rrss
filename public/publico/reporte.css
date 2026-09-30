@@ -139,3 +139,8 @@ body.presentando .lienzo{border:0}
   .lienzo{width:1280px;height:720px;font-size:16px;border:0}
   .txt.editable.vacio{display:none}
 }
+
+/* texto libre y láminas sin datos (estas solo se ven en el constructor) */
+.txt.titulo-libre{font-size:2.9em;line-height:1;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-top:.25em}
+.txt.texto-libre{font-size:1.1em;max-width:52em;color:var(--dim)}
+.aviso-l .lienzo{opacity:.75}
