@@ -56,6 +56,7 @@ input[type=color]{padding:2px;height:38px}
 .lamina:hover .sec-ctl,.sec-ctl:focus-within{opacity:1}
 .sec-ctl span{font-family:var(--mono);font-size:11px;color:var(--dimmer);padding:0 6px}
 .sec-ctl button{width:28px;height:28px;border-radius:7px;font-size:14px}
+.sec-ctl button[data-caja],.sec-ctl button[data-campos]{width:auto;padding:0 8px;font-size:12px;white-space:nowrap}
 .sec-ctl button:hover:not(:disabled){background:var(--line)}
 .sec-ctl button:disabled{opacity:.3;cursor:default}
 .sec-ctl [data-quitar]:hover{color:var(--crit)}
@@ -70,3 +71,14 @@ body.presentando .sec-ctl,body.presentando .agregar{display:none}
 .cat small{display:block;font-size:12px;color:var(--dim);line-height:1.4;margin-top:2px}
 .marcas-mc{display:flex;flex-direction:column;gap:4px;max-height:40vh;overflow-y:auto;border:1px solid var(--line-2);border-radius:10px;padding:8px 12px}
 .marcas-mc small{color:var(--dimmer);font-family:var(--mono);font-size:10.5px;margin-left:6px}
+
+.sec-ctl i { width: 1px; align-self: stretch; background: rgba(246,236,226,.2); margin: 0 .2em; }
+.cambio-aviso { position: sticky; top: 0; z-index: 30; display: flex; gap: .8em; align-items: center; flex-wrap: wrap; padding: .7em 1em; margin-bottom: 1em; background: #512168; border: 1px solid #FC3297; border-radius: 8px; }
+.cambio-aviso span { flex: 1; }
+.etq.cambio { background: rgba(252,50,151,.15); color: #FC3297; }
+.historial { list-style: none; padding: 0; margin: 0; max-height: 60vh; overflow: auto; font-size: .9rem; }
+.historial li { padding: .45em 0; border-bottom: 1px solid rgba(246,236,226,.08); }
+.historial time { opacity: .6; font-family: 'IBM Plex Mono', monospace; font-size: .8em; margin-right: .5em; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: .3em 1em; }
+.checks label { display: flex; gap: .5em; align-items: center; }
+.extra-f { display: grid; grid-template-columns: 1fr 9em auto; gap: .5em; margin-bottom: .5em; }

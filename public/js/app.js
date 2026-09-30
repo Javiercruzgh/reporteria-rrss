@@ -57,10 +57,12 @@ async function vistaMes(el) {
     $('#mes', el).textContent = tituloMes(mes);
     try {
       ({ clientes } = await api('/api/reportes?mes=' + mes));
+      let vistos = {}; try { vistos = JSON.parse(localStorage.getItem('rr-visto') || '{}'); } catch {}
       grilla.innerHTML = clientes.length ? clientes.map(c => {
         const r = c.reporte, marcas = c.config.marcas.filter(m => m.activa !== false);
+        const nuevo = r && r.editadoPor !== ctx.yo.email && (!vistos[r.id] || r.editadoEn > vistos[r.id]);
         return `<article class="card cli" ${r ? `data-abrir="${esc(r.id)}" tabindex="0"` : ''}>
-          <span>${r ? `<span class="etq estado ${esc(r.estado)}">${esc(ESTADO[r.estado])}</span>` : '<span class="etq estado sin">Sin crear</span>'}</span>
+          <span>${r ? `<span class="etq estado ${esc(r.estado)}">${esc(ESTADO[r.estado])}</span>` : '<span class="etq estado sin">Sin crear</span>'}${nuevo ? ` <span class="etq cambio" title="Cambió desde tu última visita">● Cambios de ${esc(corto(r.editadoPor))}</span>` : ''}</span>
           <b>${esc(c.nombre)}</b>
           <p>${marcas.length > 1 ? esc(plural(marcas.length, 'marca', 'marcas')) + ' · ' : ''}${esc([...new Set(marcas.flatMap(m => m.redes))].map(x => REDES[x]).join(', '))}${c.config.escucha ? ' · social listening' : ''}</p>
           <div class="meta">${r ? `<span>${r.datosEn ? `Datos del ${esc(fechaHora(r.datosEn))}` : 'Sin datos todavía'}</span><span>${esc(corto(r.editadoPor))}</span>`
@@ -112,6 +114,7 @@ async function vistaReporte(el, id) {
           : `<button class="btn pk" data-a="listo" ${sinDatos ? 'disabled' : ''}>Marcar listo</button>`}
         <details class="mas"><summary class="btn">Más</summary><div class="menu">
           <button data-a="proponerTodo" ${sinDatos || R.ia.modo === 'apagado' ? 'disabled' : ''}>Reescribir todos los textos con IA</button>
+          <button data-a="historial">Historial de cambios</button>
           <button data-a="importar">Importar datos (JSON)</button>
           <button data-a="restablecer" ${M.seccionesPropias ? '' : 'disabled'}>Volver a la propuesta de láminas</button>
           <button data-a="pdf" ${sinDatos ? 'disabled' : ''}>Guardar en PDF</button>
@@ -124,7 +127,7 @@ async function vistaReporte(el, id) {
       ${M.simulado ? '<p class="aviso warn">Estos números son inventados (modo de prueba). No compartas este reporte.</p>' : ''}
       ${sinDatos ? vacio('Este reporte todavía no tiene datos', 'Actualiza los datos para traer de Metricool el mes y el mismo tramo del mes anterior.', '<button class="btn pk" data-a="datos">↻ Actualizar datos</button>')
         : `<p class="nota ayuda">Así lo verá el cliente. Haz clic en cualquier texto para escribirlo; se guarda solo. Con las flechas y «+ Agregar lámina» armas el reporte a tu medida. <b>**negrita**</b> y línea en blanco para un párrafo nuevo. ${faltan()}</p>
-           <div class="laminas" id="laminas">${laminas(M, { textos: R.textos, editable: true, claves: R.claves })}</div>`}`;
+           <div class="laminas" id="laminas">${laminas(M, { textos: R.textos, editable: true, claves: R.claves, imagen: img => `/api/reportes/${id}/imagen/${img}` })}</div>`}`;
     $$('[data-a]', el).forEach(b => b.onclick = () => { b.closest('details')?.removeAttribute('open'); ACC[b.dataset.a](b); });
     $('#hasta', el).onchange = e => cambiarHasta(e.target);
     const ls = $('#laminas', el); if (ls) { conectarTextos(ls); controlesLaminas(ls); }
@@ -159,6 +162,14 @@ async function vistaReporte(el, id) {
         });
       };
       i.click();
+    },
+    async historial() {
+      const { cambios } = await api(`/api/reportes/${id}/cambios`);
+      const QUE = { 'editar reporte': 'editó', 'actualizar datos': 'actualizó los datos', 'importar datos': 'importó datos', 'proponer textos': 'pidió textos a la IA', 'subir brandwatch': 'subió Brandwatch', 'subir imagen': 'subió una imagen', 'nuevo link': 'cambió el link', 'crear reporte': 'creó el reporte', 'papelera reporte': 'lo mandó a la papelera', 'restaurar reporte': 'lo restauró' };
+      const det = d => d.cambios ? ' · ' + d.cambios.map(c => ({ textos: 'textos', secciones: 'láminas', estado: 'estado', hasta: 'fecha de corte' }[c] || c)).join(', ') : '';
+      await dialogo(`<div class="form ancho"><h2>Historial de cambios</h2>
+        ${cambios.length ? `<ul class="historial">${cambios.map(c => `<li><time>${esc(fechaHora(c.cuando))}</time> <b>${esc(corto(c.quien))}</b> ${esc(QUE[c.accion] || c.accion)}${esc(det(c.detalle))}</li>`).join('')}</ul>` : '<p class="nota">Sin cambios todavía.</p>'}
+        <div class="fin"><button class="btn" data-cancelar>Cerrar</button></div></div>`);
     },
     presentar: () => { const ls = $('#laminas', el); if (ls) presentar(ls); },
     pdf: () => print(),
@@ -214,18 +225,26 @@ async function vistaReporte(el, id) {
       l.insertAdjacentHTML('afterbegin', `<div class="sec-ctl no-imprimir"><span>${i + 1}</span>
         <button data-mover="-1" ${i === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir lámina">↑</button>
         <button data-mover="1" ${i === R.modelo.secciones.length - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar lámina">↓</button>
-        <button data-quitar title="Quitar lámina" aria-label="Quitar lámina">✕</button></div>`);
+        <button data-quitar title="Quitar lámina" aria-label="Quitar lámina">✕</button>
+        <i></i><button data-caja="texto" title="Agregar una caja de texto">+ Texto</button>
+        <button data-caja="imagen" title="Agregar una imagen (PNG, JPG, WEBP o GIF)">+ Imagen</button>
+        ${R.modelo.secciones[i]?.tipo === 'red' ? '<button data-campos title="Elegir qué indicadores aparecen y agregar campos a mano">Campos</button>' : ''}</div>`);
       const ultima = [...ls.querySelectorAll(`.lamina[data-sec="${CSS.escape(sid)}"]`)].at(-1);
       const siguiente = ultima.nextElementSibling;
       (siguiente?.classList.contains('lamina') && !siguiente.dataset.sec ? siguiente : ultima).insertAdjacentHTML('afterend', `<button class="agregar no-imprimir" data-despues="${esc(sid)}">+ Agregar lámina</button>`);
     });
     if (!R.modelo.secciones.length) ls.innerHTML = '<button class="agregar no-imprimir" data-despues="">+ Agregar lámina</button>';
     ls.addEventListener('click', e => {
-      const b = e.target.closest('[data-mover],[data-quitar],[data-despues]'); if (!b) return;
+      const b = e.target.closest('[data-mover],[data-quitar],[data-despues],[data-caja],[data-quitar-caja],[data-campos]'); if (!b) return;
       e.stopPropagation();
       const lista = R.modelo.secciones.map(x => ({ ...x }));
       if (b.dataset.despues != null) return agregarLamina(lista, b.dataset.despues);
       const sid = b.closest('.lamina').dataset.sec, i = lista.findIndex(x => x.id === sid);
+      const s = lista[i];
+      if (b.dataset.caja === 'texto') return guardarSecciones(lista.with(i, { ...s, bloques: [...(s.bloques || []), { tipo: 'texto' }] }), 'Caja agregada: haz clic en ella para escribir.', sid);
+      if (b.dataset.caja === 'imagen') return subirImagen(lista, i);
+      if (b.dataset.quitarCaja) return guardarSecciones(lista.with(i, { ...s, bloques: (s.bloques || []).filter(x => x.id !== b.dataset.quitarCaja) }), 'Caja quitada.', sid);
+      if (b.dataset.campos != null) return elegirCampos(lista, i);
       if (b.dataset.quitar != null) {
         lista.splice(i, 1);
         return guardarSecciones(lista, 'Lámina quitada. Sus textos quedan guardados por si la vuelves a agregar.');
@@ -240,6 +259,57 @@ async function vistaReporte(el, id) {
       if (aviso) toast(aviso);
     });
     if (enfocar) $(`.lamina[data-sec="${CSS.escape(enfocar)}"]`, el)?.scrollIntoView({ block: 'center' });
+  }
+  /* imagen: se achica en el navegador (máximo 1600 px) antes de subirla */
+  function subirImagen(lista, i) {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif';
+    inp.onchange = () => { const f = inp.files[0]; if (!f) return;
+      trabajar('Subiendo la imagen…', async () => {
+        const cuerpo = await achicar(f);
+        const r = await fetch(`/api/reportes/${id}/imagen`, { method: 'POST', headers: { 'Content-Type': cuerpo.type || 'application/octet-stream' }, body: cuerpo });
+        const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'No se pudo subir la imagen.');
+        const s = lista[i];
+        R = await api('/api/reportes/' + id, { method: 'PATCH', body: { secciones: lista.with(i, { ...s, bloques: [...(s.bloques || []), { tipo: 'imagen', img: j.img }] }) } });
+        toast('Imagen agregada.');
+      });
+    };
+    inp.click();
+  }
+  async function achicar(f) {
+    if (f.type === 'image/gif') { if (f.size > 5e6) throw new Error('El GIF pesa más de 5 MB.'); return f; }
+    const bmp = await createImageBitmap(f).catch(() => { throw new Error('No se pudo leer la imagen.'); });
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    if (k === 1 && f.size < 1.5e6) return f;
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const tipo = f.type === 'image/png' ? 'image/png' : 'image/jpeg';   // PNG conserva la transparencia (logos)
+    return new Promise(ok => c.toBlob(ok, tipo, 0.85));
+  }
+  /* campos de una lámina de red: qué indicadores se ven y cuáles se agregan a mano */
+  async function elegirCampos(lista, i) {
+    const s = lista[i], m = R.modelo.marcas.find(x => x.id === s.marca), red = m?.redes.find(x => x.red === s.red);
+    if (!red) return toast('Esta lámina todavía no tiene datos.', true);
+    const ocultos = new Set(s.ocultos || []);
+    const fila = (e = {}) => `<div class="extra-f"><input name="etq" placeholder="Nombre del campo" maxlength="60" value="${esc(e.etiqueta || '')}"><input name="val" placeholder="Valor" maxlength="40" value="${esc(e.valor || '')}"><button type="button" class="btn sm" data-x>✕</button></div>`;
+    const r = await dialogo(`<form class="form"><h2>Campos · ${esc(m.nombre)} · ${esc(red.nombre)}</h2>
+      <p class="nota">Marca los indicadores que se ven en la tabla.</p>
+      <div class="checks">${red.kpis.map(k => `<label><input type="checkbox" name="kpi" value="${esc(k.etiqueta)}" ${ocultos.has(k.etiqueta) ? '' : 'checked'}> ${esc(k.etiqueta)}</label>`).join('')}</div>
+      <p class="nota">Campos escritos a mano (por ejemplo, ventas o clics que no vienen de Metricool). Van al final de la tabla.</p>
+      <div id="extras">${(s.extra || []).map(fila).join('')}</div>
+      <button type="button" class="btn sm" id="mas-extra">+ Agregar campo</button>
+      <p class="aviso crit" data-error hidden></p>
+      <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Guardar</button></div></form>`, {
+      alAbrir: d => {
+        $('#mas-extra', d).onclick = () => { if ($$('.extra-f', d).length < 10) $('#extras', d).insertAdjacentHTML('beforeend', fila()); };
+        $('#extras', d).onclick = e => e.target.closest('[data-x]')?.closest('.extra-f').remove();
+      },
+      alEnviar: (_, d) => {
+        const vis = new Set($$('[name=kpi]:checked', d).map(x => x.value));
+        const extra = $$('.extra-f', d).map(f => ({ etiqueta: $('[name=etq]', f).value.trim(), valor: $('[name=val]', f).value.trim() })).filter(e => e.etiqueta);
+        return api('/api/reportes/' + id, { method: 'PATCH', body: { secciones: lista.with(i, { ...s, ocultos: red.kpis.map(k => k.etiqueta).filter(x => !vis.has(x)), extra }) } });
+      }
+    });
+    if (r) { R = r; pintar(); toast('Campos guardados.'); $(`.lamina[data-sec="${CSS.escape(s.id)}"]`, el)?.scrollIntoView({ block: 'center' }); }
   }
   async function agregarLamina(lista, despues) {
     const marcas = R.modelo.marcasCliente || [];
@@ -304,9 +374,25 @@ async function vistaReporte(el, id) {
       if (/Recarga/.test(e.message)) { await cargar(); }
     }
   }
-  salir = () => Promise.all(guardando.values());
+  /* aviso de cambios: cada 20 segundos pregunta si alguien más cambió el reporte */
+  const visto = () => { try { const v = JSON.parse(localStorage.getItem('rr-visto') || '{}'); v[id] = new Date().toISOString(); localStorage.setItem('rr-visto', JSON.stringify(v)); } catch {} };
+  let avisado = 0;
+  const reloj = setInterval(async () => {
+    if (!R || document.hidden) return;
+    try {
+      const v = await api(`/api/reportes/${id}/version`);
+      if (v.rev > R.rev && v.editadoPor !== ctx.yo.email && v.rev !== avisado) {
+        avisado = v.rev; $('.cambio-aviso', el)?.remove();
+        el.insertAdjacentHTML('afterbegin', `<div class="cambio-aviso no-imprimir" role="status"><span><b>${esc(corto(v.editadoPor))}</b> cambió este reporte.</span><button class="btn sm pk" data-recargar>Ver los cambios</button><button class="btn sm" data-cerrar>Después</button></div>`);
+        const a = $('.cambio-aviso', el);
+        $('[data-recargar]', a).onclick = async () => { await Promise.all(guardando.values()); a.remove(); await cargar(); visto(); };
+        $('[data-cerrar]', a).onclick = () => a.remove();
+      } else if (v.rev > R.rev && v.editadoPor === ctx.yo.email) R.rev = v.rev;
+    } catch {}
+  }, 20000);
+  salir = () => { clearInterval(reloj); visto(); return Promise.all(guardando.values()); };
   addEventListener('beforeunload', e => { if (guardando.size) e.preventDefault(); });
-  await cargar();
+  await cargar(); visto();
 }
 
 /* ============================================================ clientes */

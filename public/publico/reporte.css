@@ -144,3 +144,15 @@ body.presentando .lienzo{border:0}
 .txt.titulo-libre{font-size:2.9em;line-height:1;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-top:.25em}
 .txt.texto-libre{font-size:1.1em;max-width:52em;color:var(--dim)}
 .aviso-l .lienzo{opacity:.75}
+
+/* cajas que agrega el equipo (texto o imagen): franja al final de la lámina; en la lámina en blanco, todo el espacio */
+.cajas { align-self: stretch; width: 100%; display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 1em; margin-top: 1.2em; }
+.cajas.n2 { --n: 2; } .cajas.n3 { --n: 3; } .cajas.n4 { --n: 4; }
+.caja-l { position: relative; min-width: 0; }
+.caja-l.imagen { margin: 0; display: flex; align-items: center; justify-content: center; }
+.caja-l.imagen img { max-width: 100%; max-height: 13em; object-fit: contain; border-radius: .4em; display: block; }
+.lamina.blanco .cajas { flex: 1; min-height: 0; }
+.lamina.blanco .caja-l.imagen img { max-height: 30em; }
+.caja-x { position: absolute; top: -.6em; right: -.6em; z-index: 2; width: 1.8em; height: 1.8em; border-radius: 50%; border: 1px solid rgba(246,236,226,.3); background: #131114; color: #F6ECE2; cursor: pointer; font-size: .8em; }
+.rt tr.manual td:first-child::after { content: ' ✎'; opacity: .45; font-size: .8em; }
+@container (max-width: 700px) { .cajas { grid-template-columns: 1fr; } .lamina.blanco .caja-l.imagen img, .caja-l.imagen img { max-height: none; } }

@@ -12,7 +12,7 @@ try {
   document.title = `${M.cliente.nombre} · ${M.titulo} · Monkey Labs`;
   document.getElementById('titulo').textContent = M.cliente.nombre;
   document.getElementById('sub').textContent = 'Redes orgánicas · ' + M.titulo;
-  cont.innerHTML = laminas(M, { textos: j.textos });
+  cont.innerHTML = laminas(M, { textos: j.textos, imagen: img => `/api/publico/${encodeURIComponent(token)}/imagen/${img}` });
   const p = document.getElementById('presentar'), d = document.getElementById('pdf');
   p.hidden = d.hidden = false;
   p.onclick = () => presentar(cont);

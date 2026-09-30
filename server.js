@@ -35,6 +35,8 @@ async function leerJson(req, limite = 1e6) {
   for await (const c of req) { n += c.length; if (n > limite) throw new Err(413, 'Solicitud demasiado grande.'); trozos.push(c); }
   try { return trozos.length ? JSON.parse(Buffer.concat(trozos).toString('utf8')) : {}; } catch { throw new Err(400, 'JSON inválido.'); }
 }
+// las imágenes no cambian (cada subida tiene su id), así que se pueden guardar en caché
+const imagen = (res, x) => enviar(res, 200, Buffer.from(x.datos), x.tipo, { 'Cache-Control': 'private, max-age=86400', 'Content-Security-Policy': "default-src 'none'" });
 const redirigir = (res, a) => { res.writeHead(302, { Location: a, 'Cache-Control': 'no-store' }); res.end(); };
 
 /* ---------- estáticos ---------- */
@@ -79,6 +81,7 @@ async function manejar(req, res) {
   if (ruta === '/api/logout') return enviar(res, 200, { ok: true }, undefined, { 'Set-Cookie': cookieSalir() });
   // link del cliente: sin sesión, solo el reporte listo (ver reportes.publico)
   if (partes[0] === 'r' && partes.length === 2 && (M === 'GET' || M === 'HEAD')) return estatico(req, res, '/publico/cliente.html', { robots: true });
+  if (partes[0] === 'api' && partes[1] === 'publico' && partes.length === 5 && partes[3] === 'imagen' && M === 'GET') return imagen(res, reportes.imagenPublica(partes[2], partes[4]));
   if (partes[0] === 'api' && partes[1] === 'publico' && partes.length === 3 && M === 'GET') return enviar(res, 200, reportes.publico(partes[2]), undefined, { 'X-Robots-Tag': 'noindex' });
   if (PUBLICAS.some(r => r.test(ruta))) return estatico(req, res, ruta);
 
@@ -120,6 +123,10 @@ async function manejar(req, res) {
     if (M === 'POST' && acc === 'importar') return enviar(res, 200, reportes.importar(u, id, await leerJson(req, 20e6)));
     if (M === 'POST' && acc === 'proponer') return enviar(res, 200, await reportes.proponer(u, id, await leerJson(req)));
     if (M === 'POST' && acc === 'escucha') return enviar(res, 200, await reportes.subirEscucha(u, id, await leerCuerpo(req, 25e6)));
+    if (M === 'POST' && acc === 'imagen') return enviar(res, 201, reportes.subirImagen(u, id, await leerCuerpo(req, 5e6)));
+    if (M === 'GET' && acc === 'imagen' && partes[4]) return imagen(res, reportes.imagen(id, partes[4]));
+    if (M === 'GET' && acc === 'version') return enviar(res, 200, reportes.version(id));
+    if (M === 'GET' && acc === 'cambios') return enviar(res, 200, { cambios: reportes.cambios(id) });
     if (M === 'POST' && acc === 'nuevo-link') return enviar(res, 200, reportes.nuevoLink(u, id));
     if (M === 'POST' && acc === 'restaurar') return enviar(res, 200, reportes.restaurar(u, id));
   }

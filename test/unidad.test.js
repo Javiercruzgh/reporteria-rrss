@@ -169,3 +169,13 @@ test('clientes: la configuración se valida antes de guardarse', () => {
   assert.throws(() => validarConfig({ marcas: [{ nombre: 'X', redes: [] }] }), /al menos una red/);
   assert.throws(() => validarConfig({ marcas: [{ nombre: 'X', redes: ['tiktok'] }, { nombre: 'x', redes: ['tiktok'] }] }), /repite/);
 });
+
+test('láminas: campos y cajas se validan', async () => {
+  const { validar } = await import('../lib/secciones.js');
+  const cli = { nombre: 'X', config: { marcas: [{ id: 'x', nombre: 'X', redes: ['instagram'] }] } };
+  const [s] = validar([{ id: 'x-instagram', tipo: 'red', marca: 'x', red: 'instagram', ocultos: ['Historias'], extra: [{ etiqueta: 'Ventas', valor: '10' }, { etiqueta: '' }], bloques: [{ tipo: 'texto' }] }], cli);
+  assert.deepEqual(s.ocultos, ['Historias']); assert.deepEqual(s.extra, [{ etiqueta: 'Ventas', valor: '10' }]); assert.equal(s.bloques[0].tipo, 'texto');
+  assert.throws(() => validar([{ tipo: 'blanco', bloques: [{ tipo: 'imagen', img: 'javascript:alert(1)' }] }], cli), /imagen/);
+  assert.throws(() => validar([{ tipo: 'blanco', bloques: Array(9).fill({ tipo: 'texto' }) }], cli), /Máximo 8/);
+  assert.equal(validar([{ tipo: 'portada', ocultos: ['x'] }], cli)[0].ocultos, undefined, 'los campos son solo de las láminas de red');
+});

@@ -201,3 +201,43 @@ test('producción: sin sesión solo se ve el login y el link del cliente', async
   await assert.rejects(levantar('x@monkeylabs.cl', temporal(), { MODO: 'produccion', GOOGLE_CLIENT_ID: 'x' }), /SESSION_SECRET/);
   await assert.rejects(levantar('x@monkeylabs.cl', temporal(), { RAILWAY_ENVIRONMENT: 'production' }), /GOOGLE_CLIENT_ID/);
 });
+
+test('láminas: cajas de texto, imágenes, campos y aviso de cambios', async () => {
+  const s = await levantar('pruebas@monkeylabs.cl');
+  try {
+    await nuevoCliente(s, 'Alflorex');
+    const r = (await s.j('/api/reportes', { method: 'POST', body: { cliente: 'alflorex', mes: '2026-09' } })).body;
+    let d = (await s.j(`/api/reportes/${r.id}/datos`, { method: 'POST' })).body;
+    const sube = (buf, tipo) => fetch(`${s.B}/api/reportes/${r.id}/imagen`, { method: 'POST', headers: { 'Content-Type': tipo }, body: buf }).then(async x => ({ status: x.status, body: await x.json() }));
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fe0dc3a2c70000000049454e44ae426082', 'hex');
+    assert.equal((await sube(Buffer.from('<svg onload=alert(1)></svg>'), 'image/svg+xml')).status, 400, 'solo imágenes de verdad (no SVG)');
+    const { img } = (await sube(png, 'image/png')).body;
+    assert.match(img, /^i[0-9a-f]{16}$/);
+
+    const red = d.modelo.secciones.find(x => x.tipo === 'red'), kpi = d.modelo.marcas[0].redes[0].kpis[0].etiqueta;
+    const lista = d.modelo.secciones.map(x => x.id === red.id ? { ...x, ocultos: [kpi], extra: [{ etiqueta: 'Ventas desde Instagram', valor: '45' }], bloques: [{ tipo: 'texto' }, { tipo: 'imagen', img }] } : x);
+    lista.push({ tipo: 'blanco' });
+    d = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: lista } })).body;
+    const sec = d.modelo.secciones.find(x => x.id === red.id);
+    assert.deepEqual(sec.ocultos, [kpi]); assert.equal(sec.extra[0].valor, '45'); assert.equal(sec.bloques.length, 2);
+    const caja = `${red.id}.b-${sec.bloques[0].id}`;
+    assert.ok(d.claves.some(c => c.clave === caja && c.ia === false), 'la caja de texto es un espacio más, que escribe el equipo');
+    d = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { [caja]: 'Texto de la caja' } } })).body;
+    assert.equal(d.textos[caja], 'Texto de la caja');
+    const ajena = lista.map(x => x.id === red.id ? { ...x, bloques: [{ tipo: 'imagen', img: 'i0000000000000000' }] } : x);
+    assert.equal((await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: ajena } })).status, 400, 'no acepta imágenes de otro reporte');
+
+    const ruta = `/api/reportes/${r.id}/imagen/${img}`;
+    const ver = await fetch(s.B + ruta); assert.equal(ver.status, 200); assert.equal(ver.headers.get('content-type'), 'image/png'); assert.deepEqual(Buffer.from(await ver.arrayBuffer()), png, 'devuelve los mismos bytes');
+    // link del cliente: la imagen solo se ve con el reporte listo
+    const tk = d.link.split('/r/')[1];
+    assert.equal((await fetch(`${s.B}/api/publico/${tk}/imagen/${img}`)).status, 404);
+    await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { estado: 'listo' } });
+    assert.equal((await fetch(`${s.B}/api/publico/${tk}/imagen/${img}`)).status, 200);
+
+    const v = (await s.j(`/api/reportes/${r.id}/version`)).body;
+    assert.equal(v.editadoPor, 'pruebas@monkeylabs.cl'); assert.ok(v.rev > 1);
+    const h = (await s.j(`/api/reportes/${r.id}/cambios`)).body.cambios;
+    assert.ok(h.some(c => c.accion === 'subir imagen') && h.some(c => c.accion === 'editar reporte'));
+  } finally { await s.parar(); }
+});

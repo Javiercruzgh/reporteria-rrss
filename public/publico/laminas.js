@@ -29,9 +29,11 @@ const cabeza = (kicker, titulo, acento = '') => `<header class="cab"><span class
 const lamina = (clase, cuerpo, nombre, sec = '') => `<section class="lamina ${clase}" data-nombre="${esc(nombre)}"${sec ? ` data-sec="${esc(sec)}"` : ''}><div class="lienzo">${cuerpo}<img class="iso" src="/assets/iso.png" alt=""></div></section>`;
 
 /* ---------- piezas ---------- */
-function tablaKpis(r, mesAnt) {
+function tablaKpis(r, mesAnt, s = {}) {
+  const ocultos = new Set(s.ocultos || []);
   return `<table class="rt kpis"><thead><tr><th>Indicador</th><th>Mes</th><th>vs ${esc(mesAnt)}</th></tr></thead><tbody>
-    ${r.kpis.map(k => `<tr><td>${esc(k.etiqueta)}</td><td class="n">${num(k.v, k.formato)}${k.detalle ? ` <small>(${esc(k.detalle)})</small>` : ''}</td><td>${vari(k.var)}</td></tr>`).join('')}
+    ${r.kpis.filter(k => !ocultos.has(k.etiqueta)).map(k => `<tr><td>${esc(k.etiqueta)}</td><td class="n">${num(k.v, k.formato)}${k.detalle ? ` <small>(${esc(k.detalle)})</small>` : ''}</td><td>${vari(k.var)}</td></tr>`).join('')}
+    ${(s.extra || []).map(e => `<tr class="manual"><td>${esc(e.etiqueta)}</td><td class="n">${esc(e.valor)}</td><td><span class="var">—</span></td></tr>`).join('')}
   </tbody></table>`;
 }
 function tablaGeneral(filas, total, nombreTotal) {
@@ -108,7 +110,7 @@ const L = {
     if (!r) return sinDatos(M, s, ctx, s.red || 'Red', 'No hay datos de esta red en el período. Actualiza los datos o quita la lámina.');
     return lamina('red', `${cabeza(`${MAYUS(m.nombreLargo)} · ${MAYUS(r.nombre)}`, r.nombre, 'del mes')}
       <div class="red-grid">
-        <div class="red-izq">${tablaKpis(r, M.mesAnterior)}</div>
+        <div class="red-izq">${tablaKpis(r, M.mesAnterior, s)}</div>
         <div class="red-der">${txt(ctx, k(s, 'lectura'), { clase: 'caja', vacio: 'Lectura: qué explica las variaciones (piezas, formatos).' })}
           ${r.top.length ? `<span class="label-s">Top contenidos${r.notaTop ? ` · ${esc(r.notaTop)}` : ''}</span><div class="tops">${r.top.map(tarjetaTop).join('')}</div>` : ''}</div>
       </div>`, `${m.nombre} · ${r.nombre}`, s.id);
@@ -157,6 +159,12 @@ const L = {
       ${e.nota ? `<p class="pie">${esc(e.nota)} Fuente: Brandwatch${e.periodo ? `, ${esc(e.periodo)}` : ''}.</p>` : ''}`, 'Social listening · Aprendizajes') : '');
   },
 
+  blanco(M, s, ctx) {
+    const t = (ctx.textos[k(s, 'titulo')] || '').trim();
+    if (!ctx.editable && !t && !(s.bloques || []).length) return '';
+    return lamina('blanco', `<header class="cab"><span class="kicker">${MAYUS(M.cliente.nombre)}</span>${txt(ctx, k(s, 'titulo'), { clase: 'titulo-libre', vacio: 'Título' })}</header>`, t || 'Lámina en blanco', s.id);
+  },
+
   libre(M, s, ctx) {
     const t = (ctx.textos[k(s, 'titulo')] || '').trim();
     if (!ctx.editable && !t && !(ctx.textos[k(s, 'texto')] || '').trim()) return '';
@@ -168,8 +176,25 @@ const L = {
   gracias: (M, s) => lamina('portada', `<div class="port"><h1 class="acento">Gracias</h1><p class="port-per">Monkey Labs</p></div>`, 'Gracias', s.id)
 };
 
-/** Todas las láminas, en el orden de las secciones del reporte. ctx = { textos, editable, claves } */
-export function laminas(M, { textos = {}, editable = false, claves = [] } = {}) {
-  const ctx = { textos, editable, pide: Object.fromEntries(claves.map(c => [c.clave, c.pide])) };
-  return (M.secciones || []).map(s => L[s.tipo]?.(M, s, ctx) || '').filter(Boolean).join('');
+/* Cajas que el equipo agrega a cualquier lámina (texto o imagen). Van en una franja al final del contenido;
+   en la lámina en blanco ocupan todo el espacio. Una caja de texto vacía no llega al cliente. */
+function cajas(s, ctx) {
+  const bs = (s.bloques || []).map(b => {
+    const quitar = ctx.editable ? `<button type="button" class="caja-x" data-quitar-caja="${esc(b.id)}" title="Quitar caja">✕</button>` : '';
+    if (b.tipo === 'imagen') return `<figure class="caja-l imagen" data-bloque="${esc(b.id)}">${quitar}<img src="${esc(ctx.imagen(b.img))}" alt=""></figure>`;
+    const t = txt(ctx, k(s, 'b-' + b.id), { clase: 'caja', vacio: 'Escribe aquí.' });
+    return t ? `<div class="caja-l texto" data-bloque="${esc(b.id)}">${quitar}${t}</div>` : '';
+  }).filter(Boolean);
+  return bs.length ? `<div class="cajas n${Math.min(bs.length, 4)}">${bs.join('')}</div>` : '';
+}
+
+/** Todas las láminas, en el orden de las secciones del reporte. ctx = { textos, editable, claves, imagen } */
+export function laminas(M, { textos = {}, editable = false, claves = [], imagen = img => img } = {}) {
+  const ctx = { textos, editable, imagen, pide: Object.fromEntries(claves.map(c => [c.clave, c.pide])) };
+  return (M.secciones || []).map(s => {
+    const html = L[s.tipo]?.(M, s, ctx) || '', extra = html && cajas(s, ctx);
+    if (!extra) return html;
+    const i = html.indexOf('<img class="iso"');   // las cajas van dentro de la primera lámina de la sección
+    return html.slice(0, i) + extra + html.slice(i);
+  }).filter(Boolean).join('');
 }
