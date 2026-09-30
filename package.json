@@ -1,0 +1,17 @@
+{
+  "name": "herramienta-monkey",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plantilla para crear herramientas de Monkey System: mismo login, diseño y forma de publicar",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "pruebas": "MODO=pruebas node server.js",
+    "test": "node --test test/*.test.js",
+    "entrada": "node scripts/entrada.js"
+  }
+}

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entrar · Monkey System</title>
+<link rel="icon" href="/assets/mnky.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/css/sistema.css">
+<style>
+body{overflow:hidden;height:100vh}
+.glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(34% 40% at 50% 42%,rgba(252,50,151,.2),transparent 70%),radial-gradient(70% 60% at 50% 110%,rgba(81,33,104,.5),transparent 60%)}
+main{position:relative;z-index:1;height:100vh;display:grid;place-items:center;text-align:center;padding:16px}
+.nucleo{width:132px;height:132px;margin:0 auto 26px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#2a1f2c,#0b0a0c 70%);
+  box-shadow:0 0 0 1px rgba(252,50,151,.5),0 0 60px rgba(252,50,151,.35)}
+.nucleo img{width:48%;filter:drop-shadow(0 0 18px rgba(252,50,151,.55))}
+h1{font-variation-settings:"wdth" 125;font-weight:800;font-size:clamp(34px,5vw,64px);letter-spacing:-.035em;line-height:.9}
+h1 em{font-style:normal;font-family:var(--accent);font-weight:600;color:var(--pink)}
+p{color:var(--dim);margin:14px auto 22px;max-width:40ch;line-height:1.5}
+#gbtn{display:flex;justify-content:center;min-height:44px}
+.msg{margin-top:14px;font-size:14px;color:var(--dim)} .msg.err{color:var(--crit)}
+</style>
+</head>
+<body>
+<div class="grain"></div><div class="glow"></div>
+<main><div>
+  <div class="nucleo"><img src="/assets/iso.png" alt="Monkey Labs"></div>
+  <span class="label pk">Monkey System</span>
+  <h1 id="nombre">Monkey <em>System</em></h1>
+  <p id="txt">Entra con tu correo de Monkey Labs.</p>
+  <div id="gbtn"></div><p class="msg" id="msg"></p>
+</div></main>
+<script type="module">
+const $ = s => document.querySelector(s);
+const next = new URLSearchParams(location.search).get('next') || '/';
+const destino = /^\/(?!\/)/.test(next) ? next : '/';
+const cfg = await (await fetch('/api/config')).json();
+if (!cfg.auth) location.replace(destino);
+// el nombre de la herramienta sale de herramienta.json; la última palabra va en el acento rosa
+const pal = String(cfg.nombre || 'Herramienta').split(' '), ult = pal.pop();
+$('#nombre').innerHTML = (pal.length ? pal.join(' ').replace(/[<&]/g, '') + ' ' : '') + '<em>' + ult.replace(/[<&]/g, '') + '</em>';
+document.title = document.title.replace('Monkey System', cfg.nombre);   // conserva «PRUEBAS ·» si lo puso el servidor
+$('#txt').textContent = `Entra con tu correo @${cfg.dominio}.`;
+window.entrar = async ({ credential }) => {
+  $('#msg').className = 'msg'; $('#msg').textContent = 'Verificando…';
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { $('#msg').className = 'msg err'; $('#msg').textContent = j.error || 'No se pudo entrar.'; return; }
+  location.replace(destino);
+};
+const s = document.createElement('script');
+s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+s.onload = () => {
+  google.accounts.id.initialize({ client_id: cfg.clientId, callback: window.entrar, hd: cfg.dominio, ux_mode: 'popup', auto_select: true });
+  google.accounts.id.renderButton($('#gbtn'), { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'es' });
+};
+document.head.appendChild(s);
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Quién aprueba lo que entra a main (y, por lo tanto, lo que sale a producción).
+# Por defecto, solo Bruno. Para habilitar a Emilio como aprobador, Bruno agrega su usuario de GitHub
+# al final de la línea (por ejemplo: `*  @brunopero-sudo @usuario-de-emilio`) y lo quita cuando ya no haga falta.
+# Este archivo también está protegido: cambiarlo requiere la aprobación de Bruno.
+*  @brunopero-sudo

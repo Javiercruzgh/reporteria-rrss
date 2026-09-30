@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kit de diseño · Monkey System</title>
+<link rel="icon" href="/assets/mnky.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/css/sistema.css">
+<style>
+/* solo para esta galería; lo que se copia está en sistema.css */
+.kit{display:grid;grid-template-columns:210px minmax(0,1fr);max-width:1400px;width:100%;margin:0 auto}
+.indice{position:sticky;top:calc(var(--franja) + var(--barra));align-self:start;height:calc(100vh - var(--franja) - var(--barra));overflow-y:auto;padding:22px 10px 22px 18px;display:flex;flex-direction:column;gap:2px}
+.indice a{padding:6px 10px;border-radius:8px;font-size:13.5px;color:var(--dim)}
+.indice a:hover{background:var(--line-2);color:var(--cream)}
+.intro{max-width:72ch;margin-bottom:10px;font-size:14.5px}
+.kit section{padding:28px 0 8px;border-top:1px solid var(--line-2);margin-top:20px;scroll-margin-top:calc(var(--franja) + var(--barra) + 10px)}
+.kit section > h2{font-variation-settings:"wdth" 118;font-size:24px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.kit section > p{color:var(--dim);font-size:14px;line-height:1.55;max-width:74ch;margin-bottom:14px}
+.muestra{padding:18px;border:1px dashed var(--line);border-radius:14px;background:rgba(246,236,226,.015);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.muestra.col{flex-direction:column;align-items:stretch}
+.muestra > .barra{position:relative;top:auto;width:100%;border-radius:12px}
+.codigo{margin-top:8px}
+.codigo summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--pink);padding:6px 0;width:max-content}
+.codigo pre{margin-top:6px;padding:14px;border-radius:12px;background:var(--ink-2);border:1px solid var(--line-2);overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--cream-2);tab-size:2}
+.codigo .btn{margin-top:8px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;width:100%}
+.swatch{border-radius:12px;border:1px solid var(--line-2);overflow:hidden;background:var(--ink-3)}
+.swatch i{display:block;height:60px}
+.swatch span{display:block;padding:8px 10px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.swatch b{display:block;color:var(--cream);font-family:var(--disp);font-size:13px;margin-bottom:2px}
+.tipos{display:grid;gap:14px;width:100%}
+.tipos .h{font-variation-settings:"wdth" 125;font-weight:800;font-size:clamp(34px,5vw,56px);letter-spacing:-.035em;line-height:.92}
+.tipos .h em{font-style:normal;font-family:var(--accent);font-weight:600;color:var(--pink)}
+.textos{width:100%}
+.textos td:first-child{color:var(--ok)} .textos td:nth-child(2){color:var(--crit);text-decoration:line-through;text-decoration-color:rgba(224,85,111,.5)}
+.telefono{width:375px;max-width:100%;height:720px;border-radius:36px;border:10px solid #000;box-shadow:0 0 0 1px var(--line),0 30px 80px rgba(0,0,0,.5);overflow:hidden;background:var(--ink);flex:none}
+.telefono iframe{width:100%;height:100%;border:0;display:block}
+.reglas{flex:1;min-width:240px;font-size:14px;line-height:1.6;color:var(--dim);padding-left:18px}
+.reglas li{margin-bottom:6px} .reglas b{color:var(--cream)}
+@media (max-width:760px){
+  .kit{grid-template-columns:minmax(0,1fr)}
+  .indice{position:relative;top:auto;height:auto;flex-direction:row;overflow-x:auto;padding:10px 12px;border-bottom:1px solid var(--line-2);scrollbar-width:none}
+  .indice a{flex:none;border:1px solid var(--line)}
+  .telefono{height:600px}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div><div class="glow"></div>
+<div class="app">
+  <header class="barra">
+    <a class="volver" data-monkey-system href="https://monkey-system-production.up.railway.app" title="Volver a Monkey System"><img src="/assets/iso.png" alt=""><span>Monkey System</span></a>
+    <a class="inicio" href="/kit.html"><b>Kit de <em>diseño</em></b></a>
+    <nav class="tabs"><a href="/">Herramienta de ejemplo</a><a href="/kit.html" class="on">Kit de diseño</a></nav>
+    <span class="yo" id="yo"></span>
+  </header>
+  <div class="kit">
+    <nav class="indice" id="indice" aria-label="Secciones del kit"></nav>
+    <main class="principal">
+      <div class="cabeza"><div><span class="label pk">Monkey System · para copiar</span><h1>Kit de <em>diseño</em></h1></div></div>
+      <p class="nota intro">Cada pieza está viva: pruébala aquí y copia su código con «Ver código». Todo sale de <code>/css/sistema.css</code> y <code>/js/ui.js</code>. Las reglas de uso (tono, colores, cómo confirmar un borrado) están en <code>docs/DISENO.md</code>.</p>
+
+      <section id="colores">
+        <h2>Colores y tipografías</h2>
+        <p>Fondo tinta, texto crema y un solo acento rosa. El morado y el lila van en el resplandor y en detalles. Verde, ámbar y rojo son solo para estados (listo, atención, error).</p>
+        <div class="muestra col" data-sin-codigo>
+          <div class="swatches">
+            <div class="swatch"><i style="background:var(--ink);border-bottom:1px solid var(--line-2)"></i><span><b>Tinta</b>--ink · #131114</span></div>
+            <div class="swatch"><i style="background:var(--ink-3)"></i><span><b>Tinta 3 (tarjetas)</b>--ink-3</span></div>
+            <div class="swatch"><i style="background:var(--cream)"></i><span><b>Crema</b>--cream · #F6ECE2</span></div>
+            <div class="swatch"><i style="background:var(--pink)"></i><span><b>Rosa</b>--pink · #FC3297</span></div>
+            <div class="swatch"><i style="background:var(--purple)"></i><span><b>Morado</b>--purple · #512168</span></div>
+            <div class="swatch"><i style="background:var(--lila)"></i><span><b>Lila</b>--lila</span></div>
+            <div class="swatch"><i style="background:var(--ok)"></i><span><b>Listo</b>--ok</span></div>
+            <div class="swatch"><i style="background:var(--warn)"></i><span><b>Atención</b>--warn</span></div>
+            <div class="swatch"><i style="background:var(--crit)"></i><span><b>Error y peligro</b>--crit</span></div>
+          </div>
+          <div class="tipos">
+            <div class="h">Todo el <em>laboratorio</em></div>
+            <span class="label">Archivo ancho para títulos · Neue Metana Next para el acento rosa · IBM Plex Mono para etiquetas</span>
+            <p class="nota">Texto de lectura en Archivo normal, 13 a 15 px, en crema atenuado (<code>--dim</code>) cuando es secundario.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="barra">
+        <h2>Barra superior</h2>
+        <p>Siempre arriba y pegada al hacer scroll. A la izquierda va el link de vuelta a Monkey System, después el nombre de la herramienta (la última palabra en rosa), las pestañas y quién entró. En el teléfono las pestañas bajan a una segunda fila.</p>
+        <div class="muestra">
+          <header class="barra">
+            <a class="volver" data-monkey-system href="https://monkey-system-production.up.railway.app" title="Volver a Monkey System"><img src="/assets/iso.png" alt=""><span>Monkey System</span></a>
+            <a class="inicio" href="#"><b>Lista de <em>tareas</em></b></a>
+            <nav class="tabs"><a href="#barra" class="on">Tareas</a><a href="#barra">Papelera</a><a href="#barra">Actividad</a></nav>
+            <span class="yo">pruebas@monkeylabs.cl · <b>admin</b></span>
+          </header>
+        </div>
+      </section>
+
+      <section id="botones">
+        <h2>Botones</h2>
+        <p>Uno solo rosa por pantalla: la acción principal. Los de peligro (mandar a la papelera) siempre piden confirmación. El texto es un verbo que dice lo que pasa.</p>
+        <div class="muestra">
+          <button class="btn pk">+ Nueva tarea</button>
+          <button class="btn">Cancelar</button>
+          <button class="btn sm">Chico</button>
+          <button class="btn peligro">Mandar a la papelera</button>
+          <button class="btn peligro lleno">Confirmar la papelera</button>
+          <button class="btn" disabled>Deshabilitado</button>
+          <a class="enlace" href="#botones">Link de texto</a>
+        </div>
+      </section>
+
+      <section id="tarjetas">
+        <h2>Tarjetas</h2>
+        <p>Un ítem por tarjeta: estado arriba, título, una o dos líneas de detalle y datos chicos al pie. Clic abre el detalle; la casilla de la esquina elige. Elegida, queda con borde rosa.</p>
+        <div class="muestra">
+          <div class="grilla" style="width:100%">
+            <article class="card" tabindex="0"><button class="sel" aria-label="Elegir"></button>
+              <span><span class="etq estado pendiente">Pendiente</span></span><b>Revisar la grilla de octubre</b><p>Confirmar copys y fechas con el cliente antes del viernes.</p>
+              <div class="meta"><span>pruebas</span><span>Vence 3 oct 2026</span></div></article>
+            <article class="card elegida" tabindex="0"><button class="sel" aria-label="Elegir"></button>
+              <span><span class="etq estado en-curso">En curso</span></span><b>Subir el material final del rodaje</b><p>Videos y fotos retocadas al banco audiovisual.</p>
+              <div class="meta"><span>pruebas</span><span class="tarde">Vence 28 sept 2026</span></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="grilla">
+        <h2>Grilla</h2>
+        <p>Columnas que se acomodan solas al ancho (<code>minmax(min(260px,100%),1fr)</code>). En el teléfono queda una columna. Nunca uses <code>1fr</code> a secas en una grilla de página: el teléfono se agranda hasta el contenido más ancho.</p>
+        <div class="muestra">
+          <div class="grilla" style="width:100%">
+            <article class="card"><b>Una</b><p>Se acomoda sola.</p></article>
+            <article class="card"><b>Dos</b><p>Mismo alto por fila.</p></article>
+            <article class="card"><b>Tres</b><p>En el teléfono, una columna.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="tablas">
+        <h2>Tablas</h2>
+        <p>Para listas con varias columnas (papelera, actividad, ajustes). Encabezados en mono chico. Dentro de <code>.tabla-caja</code>, en el teléfono se desplaza hacia el lado sin romper la página.</p>
+        <div class="muestra col">
+          <div class="bloque"><h2>Actividad reciente</h2><p>Quién hizo qué.</p>
+            <div class="tabla-caja"><table class="tabla"><thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Detalle</th></tr></thead><tbody>
+              <tr><td><small>30 sept, 09:12</small></td><td>pruebas</td><td>Creó una tarea</td><td><small>Revisar la grilla de octubre</small></td></tr>
+              <tr><td><small>30 sept, 09:15</small></td><td>emilio</td><td>Mandó a la papelera</td><td><small>Cotizar la jornada de fotos</small></td></tr>
+            </tbody></table></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="formularios">
+        <h2>Formularios</h2>
+        <p>Cada campo con su nombre arriba (<code>.campo</code>), lo opcional marcado como «Opcional» y el error debajo, en rojo y en español claro. Dos campos cortos van lado a lado con <code>.dos</code>; en el teléfono se apilan.</p>
+        <div class="muestra col">
+          <form class="form" onsubmit="return false" style="max-width:520px">
+            <label class="campo">Título<input name="titulo" placeholder="Por ejemplo, Revisar la grilla"></label>
+            <label class="campo">Detalle <small>Opcional</small><textarea name="detalle"></textarea></label>
+            <div class="dos">
+              <label class="campo error">Responsable<input name="responsable" value="alguien@gmail.com"><span class="msg-error">Tiene que ser un correo @monkeylabs.cl.</span></label>
+              <label class="campo">Fecha límite<input name="vence" type="date"></label>
+            </div>
+            <label class="campo">Estado<select><option>Pendiente</option><option>En curso</option><option>Lista</option></select></label>
+            <label class="campo check"><input type="checkbox" checked> Avisarme cuando cambie</label>
+            <div class="fila-form"><label class="buscar"><input type="search" placeholder="Buscar" aria-label="Buscar"></label><button class="btn pk">Guardar</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="dialogo">
+        <h2>Diálogo</h2>
+        <p>Para crear, editar y confirmar. Se cierra con Cancelar, con clic afuera o con Escape. Escape se escucha en fase de captura, así cierra solo el diálogo de más arriba y no dispara otros atajos (como quitar la selección). Si el servidor rechaza algo, el error aparece dentro del diálogo y no se pierde lo escrito.</p>
+        <div class="muestra" data-sin-codigo>
+          <button class="btn pk" id="d-form">Abrir un formulario</button>
+          <button class="btn peligro" id="d-confirmar">Confirmar un borrado</button>
+        </div>
+        <script type="text/plain" data-js>
+import { api, dialogo, confirmar, toast } from '/js/ui.js';
+
+// formulario: con alEnviar, el diálogo espera al servidor y muestra su error en [data-error]
+const tarea = await dialogo(`<form class="form">
+    <h2>Nueva tarea</h2>
+    <label class="campo">Título<input name="titulo" required autofocus></label>
+    <p class="aviso crit" data-error hidden></p>
+    <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Crear tarea</button></div>
+  </form>`, { alEnviar: datos => api('/api/tareas', { method: 'POST', body: datos }) });
+if (tarea) toast('Tarea creada.');
+
+// antes de algo delicado: qué pasa y si se puede deshacer
+if (await confirmar({ titulo: '¿Mandar esta tarea a la papelera?', texto: 'Sale de la lista y se puede restaurar desde la Papelera.', boton: 'Mandar a la papelera', peligro: true })) {
+  await api('/api/tareas/' + id, { method: 'DELETE' });
+}
+        </script>
+      </section>
+
+      <section id="seleccion">
+        <h2>Selección múltiple y barra de acciones en grupo</h2>
+        <p>Clic en la casilla elige; con algo elegido, clic en la tarjeta también. Shift elige un rango, «Elegir las N» elige todo y Escape quita la selección. La barra crema queda pegada arriba mientras bajas: lo pegajoso es <code>#sel</code>, un contenedor que ocupa toda la columna.</p>
+        <div id="sel"></div>
+        <div class="muestra col" data-sin-codigo><div class="grilla" id="demo-sel"></div></div>
+        <script type="text/plain" data-js>
+import { seleccionMultiple, plural } from '/js/ui.js';
+
+// HTML: <div id="sel"></div> justo antes de <div class="grilla" id="grilla"> con tarjetas data-id y <button class="sel" data-sel>
+const sel = seleccionMultiple({
+  contenedor: $('#grilla'),
+  ids: () => lista.map(t => t.id),            // el orden en pantalla (para Shift)
+  alAbrir: id => editar(id),                   // clic sin nada elegido
+  alCambiar: ids => {                          // pinta la barra
+    $('#sel').innerHTML = !ids.length ? '' : `<div class="accion-sel">
+      <span class="cuenta">${plural(ids.length, 'tarea elegida', 'tareas elegidas')}<small>Shift elige un rango · Esc quita</small></span>
+      <div class="acc"><button class="btn sm" data-a="lista">Marcar como lista</button><button class="btn sm peligro" data-a="papelera">Mandar a la papelera</button></div>
+      <div class="acc2"><button class="mas" data-a="todas">Elegir todas</button><button class="mas" data-a="nada">Quitar selección</button></div></div>`;
+  }
+});
+// después de recargar la lista: sel.ajustar(lista.map(t => t.id))
+        </script>
+      </section>
+
+      <section id="estados">
+        <h2>Estados: vacío, cargando y error</h2>
+        <p>Toda zona que carga datos tiene los tres. El vacío dice qué hacer (con un botón si corresponde); el error dice qué pasó y ofrece reintentar. En JavaScript: <code>vacio()</code>, <code>cargando()</code> y <code>fallo()</code> de <code>ui.js</code>.</p>
+        <div class="muestra">
+          <div class="bloque" style="flex:1;min-width:220px"><div class="vacio"><b>Todavía no hay tareas</b>Crea la primera para empezar.<br><button class="btn pk">+ Nueva tarea</button></div></div>
+          <div class="bloque" style="flex:1;min-width:220px"><div class="cargando"><div class="giro"></div>Cargando tareas…</div></div>
+          <div class="bloque" style="flex:1;min-width:220px"><div class="vacio error"><b>No se pudo cargar</b>Tu sesión expiró. Vuelve a entrar.<br><button class="btn">Reintentar</button></div></div>
+        </div>
+      </section>
+
+      <section id="avisos">
+        <h2>Avisos</h2>
+        <p>Después de cada acción, un aviso breve abajo (<code>toast</code>) dice lo que pasó, en pasado y con números: «3 tareas quedaron en Lista.». Los errores quedan en rojo y duran más. Para algo que hay que leer antes de actuar, un aviso fijo en la pantalla.</p>
+        <div class="muestra col">
+          <div class="chips" data-sin-codigo><button class="btn" id="t-ok">Mostrar un aviso</button><button class="btn peligro" id="t-err">Mostrar un error</button></div>
+          <p class="aviso">Lo que está en la papelera no se borra solo y se puede restaurar.</p>
+          <p class="aviso warn">Drive todavía no está conectado: por ahora no se puede subir material.</p>
+          <p class="aviso crit">No se pudo guardar: el título no puede quedar vacío.</p>
+          <p class="aviso ok">Listo: 12 tareas movidas.</p>
+        </div>
+      </section>
+
+      <section id="etiquetas">
+        <h2>Etiquetas y chips</h2>
+        <p>Los chips filtran (el elegido va en rosa, con su número). Las etiquetas describen y no se pueden tocar; las de estado usan el color del estado.</p>
+        <div class="muestra col">
+          <div class="chips"><button class="chip on">Todas <small>12</small></button><button class="chip">Pendiente <small>5</small></button><button class="chip">En curso <small>4</small></button><button class="chip">Lista <small>3</small></button></div>
+          <div class="chips"><span class="etq estado pendiente">Pendiente</span><span class="etq estado en-curso">En curso</span><span class="etq estado lista">Lista</span><span class="etq">Achs</span><span class="etq">Octubre</span></div>
+        </div>
+      </section>
+
+      <section id="telefono">
+        <h2>En el teléfono</h2>
+        <p>Primero se diseña para el teléfono. Esta es la herramienta de ejemplo a 375 px de ancho (el de un iPhone), viva.</p>
+        <div class="muestra" data-sin-codigo>
+          <div class="telefono"><iframe src="/" title="La herramienta de ejemplo en un teléfono" loading="lazy"></iframe></div>
+          <ul class="reglas">
+            <li><b>Sin desplazamiento hacia el lado.</b> Grillas con <code>minmax(0,1fr)</code> y tablas dentro de <code>.tabla-caja</code>.</li>
+            <li><b>Botones grandes</b> (40 px de alto como mínimo) y la acción principal a lo ancho.</li>
+            <li><b>La barra de acciones</b> queda pegada arriba; la barra superior se va con el scroll.</li>
+            <li><b>Las casillas se ven siempre</b> en pantallas táctiles (no hay mouse para pasar por encima).</li>
+            <li><b>Se prueba de verdad</b> a 375 px antes de pedir el OK.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="textos">
+        <h2>Textos</h2>
+        <p>Español de Chile, directo y amable. Botones con verbo, avisos en pasado y errores que dicen qué hacer.</p>
+        <div class="muestra col" data-sin-codigo>
+          <div class="tabla-caja"><table class="tabla textos"><thead><tr><th>Así</th><th>Así no</th></tr></thead><tbody>
+            <tr><td>Crear tarea</td><td>Submit</td></tr>
+            <tr><td>Mandar a la papelera</td><td>Eliminar definitivamente</td></tr>
+            <tr><td>3 tareas quedaron en «Lista».</td><td>Operación exitosa</td></tr>
+            <tr><td>El responsable tiene que ser un correo @monkeylabs.cl.</td><td>Error 400: invalid email</td></tr>
+            <tr><td>Todavía no hay tareas. Crea la primera para empezar.</td><td>No data</td></tr>
+          </tbody></table></div>
+        </div>
+      </section>
+
+      <section id="franja">
+        <h2>Franja de pruebas</h2>
+        <p>Fuera de producción, el servidor agrega en todas las páginas una franja rosada a rayas («AMBIENTE DE PRUEBAS · DATOS FICTICIOS», o «LOCAL» en tu computador) y antepone «PRUEBAS ·» al título. Es la misma de Grillas. No se programa en cada página: la pone <code>conFranja()</code> en <code>server.js</code>. Dentro de un iframe no se muestra.</p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { $, $$, esc, toast, dialogo, confirmar, iniciarBarra, seleccionMultiple, plural } from '/js/ui.js';
+iniciarBarra().catch(() => {});
+
+// índice
+$('#indice').innerHTML = $$('.kit section').map(s => `<a href="#${s.id}">${esc(s.querySelector('h2').textContent)}</a>`).join('');
+
+// «Ver código» debajo de cada muestra (su propio HTML) y de cada bloque de JavaScript
+const sangria = t => { const l = t.replace(/^\s*\n/, '').replace(/\s+$/, '').split('\n'); const m = Math.min(...l.filter(x => x.trim()).map(x => x.match(/^\s*/)[0].length)); return l.map(x => x.slice(m)).join('\n'); };
+function bloqueCodigo(despuesDe, texto, titulo = 'Ver código') {
+  const d = document.createElement('details'); d.className = 'codigo';
+  d.innerHTML = `<summary>${titulo}</summary><pre><code>${esc(texto)}</code></pre><button class="btn sm" type="button">Copiar</button>`;
+  d.querySelector('button').onclick = async () => { try { await navigator.clipboard.writeText(texto); toast('Código copiado.'); } catch { getSelection().selectAllChildren(d.querySelector('code')); toast('Selecciónalo y cópialo con Cmd + C.'); } };
+  despuesDe.after(d);
+}
+$$('.muestra:not([data-sin-codigo])').forEach(m => bloqueCodigo(m, sangria(m.innerHTML.replace(/ data-sin-codigo=""/g, ''))));
+$$('script[data-js]').forEach(s => bloqueCodigo(s, sangria(s.textContent), 'Ver JavaScript'));
+
+// diálogo
+$('#d-form').onclick = async () => {
+  const r = await dialogo(`<form class="form"><h2>Nueva tarea</h2>
+      <label class="campo">Título<input name="titulo" autofocus placeholder="Déjalo vacío para ver el error"></label>
+      <p class="aviso crit" data-error hidden></p>
+      <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Crear tarea</button></div></form>`,
+    { alEnviar: async d => { await new Promise(r => setTimeout(r, 300)); if (!d.titulo.trim()) throw new Error('La tarea necesita un título.'); return d; } });
+  if (r) toast(`Tarea «${r.titulo}» creada (es una demostración: no se guardó).`);
+};
+$('#d-confirmar').onclick = async () => toast(await confirmar({ titulo: '¿Mandar esta tarea a la papelera?', texto: 'Sale de la lista y se puede restaurar desde la Papelera.', boton: 'Mandar a la papelera', peligro: true }) ? 'Confirmado (demostración).' : 'Cancelado.');
+
+// avisos
+$('#t-ok').onclick = () => toast('3 tareas quedaron en «Lista».');
+$('#t-err').onclick = () => toast('No se pudo guardar: revisa tu conexión y vuelve a intentarlo.', true);
+
+// selección múltiple
+const demo = Array.from({ length: 9 }, (_, i) => ({ id: 'd' + i, titulo: ['Revisar la grilla', 'Subir el material', 'Cotizar la jornada', 'Enviar el reporte', 'Llamar al cliente', 'Armar la presentación', 'Editar el video', 'Retocar fotos', 'Cerrar el presupuesto'][i], estado: ['pendiente', 'en-curso', 'lista'][i % 3] }));
+const NOMBRE = { pendiente: 'Pendiente', 'en-curso': 'En curso', lista: 'Lista' };
+const g = $('#demo-sel');
+const pintar = () => { g.innerHTML = demo.map(t => `<article class="card" data-id="${t.id}" tabindex="0"><button class="sel" data-sel aria-label="Elegir «${esc(t.titulo)}»"></button><span><span class="etq estado ${t.estado}">${NOMBRE[t.estado]}</span></span><b>${esc(t.titulo)}</b><div class="meta"><span>demostración</span></div></article>`).join(''); sel?.marcar(); };
+const sel = seleccionMultiple({
+  contenedor: g, ids: () => demo.map(t => t.id), alAbrir: id => toast(`Abrir «${demo.find(t => t.id === id).titulo}» (aquí iría el diálogo de edición).`),
+  alCambiar: ids => {
+    $('#sel').innerHTML = !ids.length ? '' : `<div class="accion-sel"><span class="cuenta">${plural(ids.length, 'tarea elegida', 'tareas elegidas')}<small>Shift elige un rango · Esc quita</small></span>
+      <div class="acc"><button class="btn sm" data-a="lista">Marcar como lista</button><button class="btn sm peligro" data-a="papelera">Mandar a la papelera</button></div>
+      <div class="acc2">${ids.length < demo.length ? `<button class="mas" data-a="todas">Elegir las ${demo.length}</button>` : ''}<button class="mas" data-a="nada">Quitar selección</button></div></div>`;
+    $$('#sel [data-a]').forEach(b => b.onclick = async () => {
+      const a = b.dataset.a, elegidas = sel.elegidas();
+      if (a === 'todas') return sel.todas();
+      if (a === 'nada') return sel.limpiar();
+      if (a === 'lista') { demo.forEach(t => elegidas.includes(t.id) && (t.estado = 'lista')); pintar(); return toast(`${plural(elegidas.length, 'tarea quedó', 'tareas quedaron')} en «Lista».`); }
+      if (await confirmar({ titulo: `¿Mandar ${plural(elegidas.length, 'tarea', 'tareas')} a la papelera?`, texto: 'Es una demostración: no se borra nada.', boton: 'Mandar a la papelera', peligro: true })) { toast('Confirmado (demostración).'); sel.limpiar(); }
+    });
+  }
+});
+pintar();
+</script>
+</body>
+</html>

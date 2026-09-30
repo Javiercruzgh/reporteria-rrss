@@ -1,0 +1,205 @@
+/* Monkey System · diseño común (marca de la licitación Achs Salud).
+   Tokens + componentes. La galería para copiar está en /kit.html; las reglas de uso, en docs/DISENO.md. */
+@font-face{font-family:"Neue Metana Next";src:url("/assets/NeueMetanaNext-SemiBold.otf") format("opentype");font-weight:600;font-display:swap}
+:root{
+  --ink:#131114; --ink-2:#0b0a0c; --ink-3:#1c191d;
+  --cream:#F6ECE2; --cream-2:#EFE2D5; --pink:#FC3297; --pink-ink:#C4166F; --purple:#512168; --lila:#9B5CC0;
+  --muted:#8C8590;
+  --line:rgba(246,236,226,.13); --line-2:rgba(246,236,226,.07);
+  --dim:rgba(246,236,226,.62); --dimmer:rgba(246,236,226,.38);
+  --ok:#3ECF8E; --warn:#E8A33D; --crit:#E0556F;
+  --disp:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --accent:"Neue Metana Next","Archivo","Helvetica Neue",Arial,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --franja:0px;   /* alto de la franja de pruebas (0 en producción) */
+  --barra:57px;   /* alto de la barra superior */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{min-height:100vh;background:var(--ink);color:var(--cream);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+::selection{background:var(--pink);color:var(--ink)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+code{font-family:var(--mono);font-size:.9em;padding:1px 5px;border-radius:5px;background:var(--line-2)}
+
+/* textura: grano + resplandor */
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;background:url("/assets/tex.webp") center/cover no-repeat;opacity:.55;mix-blend-mode:screen}
+.glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(60% 50% at 0% 0%,rgba(81,33,104,.38),transparent 60%),radial-gradient(50% 40% at 100% 0%,rgba(252,50,151,.10),transparent 60%)}
+
+/* texto */
+.label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer)}
+.label.pk,.pk{color:var(--pink)}
+.acc{font-family:var(--accent);font-weight:600;letter-spacing:-.02em}
+.nota{font-size:13px;line-height:1.5;color:var(--dim)}
+.nota b{color:var(--cream)}
+
+/* ---------- franja de pruebas (el servidor la agrega fuera de producción; es la misma de Grillas) ---------- */
+body[data-modo]{--franja:26px;padding-top:var(--franja)}
+.franja-modo{position:fixed;left:0;right:0;top:0;z-index:300;height:var(--franja);display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:#fff;background:repeating-linear-gradient(-45deg,var(--pink) 0 14px,var(--pink-ink) 14px 28px);box-shadow:0 2px 12px rgba(0,0,0,.35);white-space:nowrap;overflow:hidden}
+
+/* ---------- estructura ---------- */
+.app{position:relative;z-index:1;min-height:calc(100vh - var(--franja));display:grid;grid-template-rows:auto 1fr;grid-template-columns:minmax(0,1fr)}
+.principal{padding:18px clamp(12px,2vw,26px) 80px;min-width:0;max-width:1280px;width:100%;margin:0 auto}
+
+/* barra superior: link de vuelta a Monkey System + nombre de la herramienta + pestañas + quién entró */
+.barra{position:sticky;top:var(--franja);z-index:40;display:flex;align-items:center;gap:14px;min-height:var(--barra);padding:10px clamp(12px,2vw,24px);background:rgba(19,17,20,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line-2)}
+.barra .volver{display:flex;align-items:center;gap:8px;flex:none;padding:6px 10px 6px 6px;border-radius:999px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--dim);border:1px solid var(--line-2)}
+.barra .volver img{width:22px;height:22px}
+.barra .volver:hover{color:var(--cream);border-color:var(--line)}
+.barra .inicio{flex:none}
+.barra .inicio b{font-variation-settings:"wdth" 122;font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}
+.barra .inicio b em{font-style:normal;font-family:var(--accent);font-weight:600;color:var(--pink)}
+.tabs{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.tabs a{padding:8px 13px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--dim);white-space:nowrap}
+.tabs a:hover{color:var(--cream);background:var(--line-2)}
+.tabs a.on{color:var(--ink);background:var(--cream)}
+.barra .yo{font-family:var(--mono);font-size:11px;color:var(--dimmer);white-space:nowrap}
+.barra .yo b{color:var(--pink);font-weight:600}
+
+/* cabeza de cada pantalla */
+.cabeza{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:14px}
+.cabeza h1{font-variation-settings:"wdth" 122;font-weight:800;font-size:clamp(26px,3vw,40px);letter-spacing:-.035em;line-height:.95}
+.cabeza h1 em{font-style:normal;font-family:var(--accent);font-weight:600;color:var(--pink)}
+.cabeza .label{display:block;margin-bottom:6px}
+.cabeza .acciones{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- botones ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;border:1px solid var(--line);color:var(--cream);background:transparent;transition:background .2s,border-color .2s,color .2s;white-space:nowrap}
+.btn:hover{border-color:var(--cream)}
+.btn.pk{background:var(--pink);border-color:var(--pink);color:#fff}
+.btn.pk:hover{background:#ff4aa6}
+.btn.sm{padding:6px 11px;font-size:12.5px}
+.btn.peligro{border-color:rgba(224,85,111,.5);color:var(--crit)}
+.btn.peligro:hover{border-color:var(--crit)}
+.btn.peligro.lleno{background:var(--crit);border-color:var(--crit);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.enlace{font-family:var(--mono);font-size:11px;color:var(--pink);text-decoration:underline;text-underline-offset:3px}
+
+/* ---------- formularios ---------- */
+input,select,textarea{font:inherit;color:var(--cream);background:rgba(246,236,226,.05);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pink)}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--pink)}
+input[type=date]{color-scheme:dark}
+select option{background:var(--ink)}
+textarea{min-height:96px;line-height:1.5;resize:vertical}
+.campo{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim)}
+.campo small{font-size:12px;color:var(--dimmer)}
+.campo.error input,.campo.error select,.campo.error textarea{border-color:var(--crit)}
+.campo .msg-error{font-size:12px;color:var(--crit)}
+.campo.check{flex-direction:row;align-items:center;gap:10px;color:var(--cream)}
+.form{display:flex;flex-direction:column;gap:12px}
+.dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.fila-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fila-form > *{flex:1;min-width:140px}
+.fila-form .btn{flex:none}
+.buscar{position:relative;min-width:min(320px,100%)}
+.buscar input{padding-left:36px;border-radius:999px}
+.buscar::before{content:"⌕";position:absolute;left:13px;top:50%;transform:translateY(-52%);color:var(--dimmer);font-size:17px}
+
+/* ---------- etiquetas y chips ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;color:var(--dim);background:transparent;white-space:nowrap;transition:all .2s}
+.chip:hover{color:var(--cream);border-color:var(--dim)}
+.chip.on{background:var(--pink);border-color:var(--pink);color:#fff}
+.chip small{font-family:var(--mono);font-size:10px;opacity:.7}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.etq{display:inline-flex;align-items:center;font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--line-2);color:var(--dim);white-space:nowrap}
+.etq.estado{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;font-size:9.5px;padding:3px 8px}
+.etq.pendiente{background:rgba(232,163,61,.16);color:var(--warn)}
+.etq.en-curso{background:rgba(155,92,192,.2);color:#c99ae6}
+.etq.lista{background:rgba(62,207,142,.14);color:var(--ok)}
+
+/* ---------- filtros ---------- */
+.filtros{display:flex;flex-direction:column;gap:9px;margin-bottom:18px;padding:12px;border:1px solid var(--line-2);border-radius:14px;background:rgba(246,236,226,.02)}
+.filtros .fila{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.filtros .fila > .label{width:92px;flex:none}
+
+/* ---------- barra de acciones en grupo ----------
+   Lo pegajoso es #sel, un contenedor que vive en toda la columna; si fuera .accion-sel (dentro de algo más chico), no se pegaría. */
+#sel{position:sticky;top:calc(var(--franja) + var(--barra) + 8px);z-index:30}
+.accion-sel{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;border-radius:12px;background:var(--cream);color:var(--ink);font-weight:600;font-size:14px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.accion-sel .cuenta{display:flex;flex-direction:column;line-height:1.15;margin-right:4px}
+.accion-sel .cuenta small{font-family:var(--mono);font-size:10.5px;font-weight:500;opacity:.6}
+.accion-sel .acc{display:flex;gap:6px;flex-wrap:wrap}
+.accion-sel .acc2{display:flex;gap:12px;margin-left:auto}
+.accion-sel .btn{color:var(--ink);border-color:rgba(19,17,20,.3)}
+.accion-sel .btn:hover{border-color:var(--ink)}
+.accion-sel .btn.pk{color:#fff}
+.accion-sel .btn.peligro{color:#b3243f;border-color:rgba(179,36,63,.45)}
+.accion-sel .mas{font-family:var(--mono);font-size:11px;color:var(--ink);opacity:.7;text-decoration:underline;text-underline-offset:3px}
+.accion-sel .mas:hover{opacity:1}
+.accion-sel.ocupada .acc,.accion-sel.ocupada .acc2{opacity:.35;pointer-events:none}
+.accion-sel .trabajando{flex-basis:100%;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;font-weight:500}
+.accion-sel .trabajando .giro{width:16px;height:16px;border-color:rgba(19,17,20,.2);border-top-color:var(--pink)}
+
+/* ---------- grilla y tarjetas ----------
+   Columnas con minmax(0,1fr): con 1fr a secas, el teléfono agranda la página hasta el contenido más ancho. */
+.grilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px}
+.card{position:relative;display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px 16px 16px;border-radius:14px;background:var(--ink-3);border:1px solid var(--line-2);cursor:pointer;transition:border-color .2s,transform .3s var(--ease)}
+.card:hover{border-color:rgba(252,50,151,.6);transform:translateY(-2px)}
+.card b{display:block;font-size:15px;font-weight:700;line-height:1.3;padding-right:30px;overflow-wrap:anywhere}
+.card p{font-size:13px;line-height:1.45;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .meta{display:flex;gap:6px 12px;flex-wrap:wrap;margin-top:auto;padding-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--dimmer)}
+.card .meta .tarde{color:var(--crit)}
+.card .sel{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:7px;border:1.5px solid rgba(246,236,226,.6);background:rgba(19,17,20,.5);display:grid;place-items:center;opacity:0;transition:opacity .2s}
+.card:hover .sel,.card:focus-within .sel,.seleccionando .card .sel{opacity:1}
+@media (hover:none){.card .sel{opacity:1}}
+.card.elegida{border-color:var(--pink);box-shadow:0 0 0 2px var(--pink)}
+.card.elegida .sel{background:var(--pink);border-color:var(--pink);opacity:1}
+.card.elegida .sel::after{content:"✓";font-size:14px;color:#fff;font-weight:700}
+
+/* ---------- estados: vacío, cargando, error ---------- */
+.vacio{padding:56px 20px;text-align:center;color:var(--dim);grid-column:1/-1}
+.vacio b{display:block;font-variation-settings:"wdth" 118;font-size:26px;color:var(--cream);letter-spacing:-.02em;margin-bottom:8px}
+.vacio .btn{margin-top:16px}
+.vacio.error b{color:var(--crit)}
+.cargando{display:flex;flex-direction:column;align-items:center;gap:12px;padding:56px 20px;color:var(--dimmer);font-family:var(--mono);font-size:11px;letter-spacing:.08em;grid-column:1/-1}
+.giro{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--pink);animation:giro 1s linear infinite}
+@keyframes giro{to{transform:rotate(360deg)}}
+
+/* ---------- avisos ---------- */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:250;padding:12px 18px;border-radius:12px;background:var(--cream);color:var(--ink);font-weight:600;font-size:14px;box-shadow:0 20px 60px rgba(0,0,0,.4);max-width:min(560px,calc(100vw - 32px))}
+.toast.err{background:var(--crit);color:#fff}
+.aviso{margin-bottom:14px;padding:10px 14px;border-radius:10px;background:rgba(246,236,226,.05);border:1px solid var(--line);font-size:13.5px;line-height:1.5}
+.aviso.warn{background:rgba(232,163,61,.12);border-color:rgba(232,163,61,.4)}
+.aviso.crit{background:rgba(224,85,111,.12);border-color:rgba(224,85,111,.45)}
+.aviso.ok{background:rgba(62,207,142,.1);border-color:rgba(62,207,142,.4)}
+
+/* ---------- bloques y tablas ---------- */
+.bloque{padding:18px;border:1px solid var(--line-2);border-radius:16px;margin-bottom:16px;background:rgba(246,236,226,.02)}
+.bloque h2{font-size:17px;font-weight:700;margin-bottom:4px}
+.bloque > p{color:var(--dim);font-size:13.5px;line-height:1.5;margin-bottom:12px}
+.tabla-caja{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.tabla{width:100%;border-collapse:collapse;font-size:13.5px}
+.tabla th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);font-weight:500;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tabla td{padding:10px 8px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.tabla td small{color:var(--dimmer);font-family:var(--mono);font-size:10.5px}
+.tabla td.num{text-align:right;font-family:var(--mono)}
+
+/* ---------- diálogo ---------- */
+.dialogo{position:fixed;inset:0;z-index:150;display:grid;place-items:center;background:rgba(8,7,9,.8);padding:16px}
+.dialogo .caja{width:min(520px,100%);max-height:calc(100vh - 32px);overflow-y:auto;background:var(--ink);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.dialogo h2{font-size:19px;line-height:1.25}
+.dialogo .fin{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;flex-wrap:wrap}
+.dialogo .fin .izq{margin-right:auto}
+
+/* ---------- teléfono (primero se diseña aquí) ---------- */
+@media (max-width:760px){
+  :root{--barra:53px}
+  .barra{gap:10px;flex-wrap:wrap;position:relative;top:auto}   /* en el teléfono la barra se va con el scroll y queda pegada solo la de acciones */
+  .barra .volver span,.barra .yo{display:none}
+  .barra .volver{padding:4px}
+  .tabs{order:3;flex-basis:100%}
+  #sel{top:calc(var(--franja) + 8px)}
+  .accion-sel .acc2{margin-left:0}
+  .dos{grid-template-columns:minmax(0,1fr)}
+  .filtros .fila > .label{width:100%}
+  .cabeza .acciones{width:100%}
+  .cabeza .acciones .btn{flex:1}
+  .franja-modo{font-size:9.5px;letter-spacing:.08em}
+}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}

@@ -1,0 +1,44 @@
+{
+  "id": "tareas",
+  "nombre": "Lista de tareas",
+  "lab": "project",
+  "descripcion": "Tareas del equipo por responsable y estado",
+  "icono": "check",
+  "ver": "todos",
+  "responsable": "pruebas@monkeylabs.cl",
+  "repo": "",
+  "estado": "borrador",
+  "puerto": 5001,
+  "urls": {
+    "local": "http://localhost:5001",
+    "pruebas": "",
+    "produccion": ""
+  },
+  "variables": [
+    {
+      "nombre": "MODO",
+      "para": "pruebas en el ambiente de pruebas; sin definir en producción",
+      "secreto": false
+    },
+    {
+      "nombre": "GOOGLE_CLIENT_ID",
+      "para": "Cliente OAuth de Google para el login (el mismo de Monkey System)",
+      "secreto": false
+    },
+    {
+      "nombre": "SESSION_SECRET",
+      "para": "Firma de la sesión; la crea Bruno con scripts/clave-sesion.mjs",
+      "secreto": true
+    },
+    {
+      "nombre": "PUBLIC_URL",
+      "para": "Dirección pública de la herramienta",
+      "secreto": false
+    },
+    {
+      "nombre": "DATA_DIR",
+      "para": "Carpeta del volumen en Railway (/data)",
+      "secreto": false
+    }
+  ]
+}
