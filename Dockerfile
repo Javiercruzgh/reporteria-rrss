@@ -1,8 +1,9 @@
-# Herramienta de Monkey System · imagen para Railway (Node 24 con SQLite integrado, sin paquetes externos)
-# Si la herramienta suma dependencias: agregar `COPY package*.json ./` y `RUN npm ci --omit=dev` antes de `COPY . .`.
+# Reportería RRSS · imagen para Railway (Node 24 con SQLite integrado; única dependencia: el SDK de Claude)
 FROM node:24-slim
 WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
 COPY . .
 ENV NODE_ENV=production DATA_DIR=/data
-EXPOSE 5001
+EXPOSE 5003
 CMD ["node", "server.js"]

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Reporte de redes · Monkey Labs</title>
+<link rel="icon" href="/assets/mnky.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/css/sistema.css">
+<link rel="stylesheet" href="/publico/reporte.css">
+<style>
+  .barra-cli{position:sticky;top:var(--franja);z-index:50;display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(19,17,20,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line-2)}
+  .barra-cli b{font-size:14px}.barra-cli .label{margin-right:auto}
+  main{padding:0 16px;position:relative;z-index:1}
+  @media (max-width:640px){.barra-cli{padding:10px 16px;gap:8px}.barra-cli .label,#presentar{display:none}.barra-cli b{margin-right:auto}}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<header class="barra-cli no-imprimir"><img src="/assets/iso.png" alt="" width="24"><b id="titulo">Reporte</b><span class="label" id="sub"></span>
+  <button class="btn sm" id="presentar" hidden>Presentar</button><button class="btn sm" id="pdf" hidden>Descargar PDF</button></header>
+<main><div class="laminas" id="laminas"><div class="cargando"><div class="giro"></div>Cargando el reporte…</div></div></main>
+<script type="module" src="/publico/cliente.js"></script>
+</body>
+</html>

@@ -1,16 +1,16 @@
 {
-  "id": "tareas",
-  "nombre": "Lista de tareas",
-  "lab": "project",
-  "descripcion": "Tareas del equipo por responsable y estado",
-  "icono": "check",
+  "id": "reporteria-rrss",
+  "nombre": "Reportería RRSS",
+  "lab": "digital",
+  "descripcion": "Reportes mensuales de redes orgánicas desde Metricool",
+  "icono": "chart",
   "ver": "todos",
-  "responsable": "pruebas@monkeylabs.cl",
-  "repo": "",
+  "responsable": "javo@monkeylabs.cl",
+  "repo": "https://github.com/Javiercruzgh/reporteria-rrss",
   "estado": "borrador",
-  "puerto": 5001,
+  "puerto": 5003,
   "urls": {
-    "local": "http://localhost:5001",
+    "local": "http://localhost:5003",
     "pruebas": "",
     "produccion": ""
   },
@@ -39,6 +39,21 @@
       "nombre": "DATA_DIR",
       "para": "Carpeta del volumen en Railway (/data)",
       "secreto": false
+    },
+    {
+      "nombre": "METRICOOL_TOKEN",
+      "para": "Token de la API de Metricool (lo genera Bruno en Metricool → Configuración → API)",
+      "secreto": true
+    },
+    {
+      "nombre": "METRICOOL_USER_ID",
+      "para": "Número de usuario de Metricool que acompaña al token",
+      "secreto": false
+    },
+    {
+      "nombre": "ANTHROPIC_API_KEY",
+      "para": "Clave de Claude para proponer textos y leer el PDF de Brandwatch (opcional; sin ella los textos se escriben a mano)",
+      "secreto": true
     }
   ]
 }

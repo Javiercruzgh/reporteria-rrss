@@ -1,0 +1,338 @@
+/* Reportería RRSS · constructor para el equipo. Pantallas por #hash:
+   #reportes?mes=AAAA-MM (grilla de clientes del mes), #reporte/<id> (constructor), #clientes, #papelera y #actividad.
+   El constructor muestra las láminas tal como las verá el cliente (public/publico/laminas.js); los textos se editan con un clic. */
+import { $, $$, api, esc, toast, fechaHora, plural, cargando, vacio, fallo, dialogo, confirmar, iniciarBarra } from './ui.js';
+import { laminas, formatear as formatearLocal } from '/publico/laminas.js';
+import { presentar } from '/publico/presentar.js';
+
+const ctx = { yo: null, cfg: null };
+const corto = email => String(email || '').replace(/@monkeylabs\.cl$/, '');
+const REDES = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', youtube: 'YouTube' };
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const tituloMes = m => { const n = MESES[+m.slice(5) - 1]; return n[0].toUpperCase() + n.slice(1) + ' ' + m.slice(0, 4); };
+const moverMes = (m, d) => { const f = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5) - 1 + d, 1)); return f.toISOString().slice(0, 7); };
+// por defecto, el mes pasado hasta el día 5; después, el mes en curso
+const mesPorDefecto = () => { const h = new Date(); return moverMes(h.toISOString().slice(0, 7), h.getDate() <= 5 ? -1 : 0); };
+const ESTADO = { borrador: 'Borrador', listo: 'Listo para el cliente' };
+const ORIGEN = { metricool: 'Metricool', simulado: 'datos inventados', importado: 'importados', conector: 'conector de Metricool' };
+
+const VISTAS = { reportes: vistaMes, reporte: vistaReporte, clientes: vistaClientes, papelera: vistaPapelera, actividad: vistaActividad };
+let salir = null;   // limpieza de la vista anterior (por ejemplo, guardar un texto a medio escribir)
+async function ir() {
+  const [nombre, arg] = location.hash.slice(1).split('?')[0].split('/');
+  const v = VISTAS[nombre] ? nombre : 'reportes';
+  await salir?.(); salir = null;
+  $$('#tabs a[data-v]').forEach(a => a.classList.toggle('on', a.dataset.v === (v === 'reporte' ? 'reportes' : v)));
+  const cont = document.createElement('div');
+  $('#vista').replaceChildren(cont);
+  try { await VISTAS[v](cont, arg); } catch (e) { cont.innerHTML = fallo(e, false); }
+}
+const param = k => new URLSearchParams(location.hash.split('?')[1] || '').get(k);
+
+/* ============================================================ grilla del mes */
+async function vistaMes(el) {
+  let mes = /^\d{4}-\d{2}$/.test(param('mes') || '') ? param('mes') : mesPorDefecto();
+  el.innerHTML = `
+    <div class="cabeza"><div><span class="label pk">DigitalLabs · reportes mensuales</span><h1>Reportería <em>RRSS</em></h1></div>
+      <div class="acciones mes-sel"><button class="btn sm" data-m="-1" aria-label="Mes anterior">←</button><b id="mes"></b><button class="btn sm" data-m="1" aria-label="Mes siguiente">→</button></div></div>
+    <div id="avisos"></div>
+    <div class="grilla" id="grilla">${cargando('Cargando clientes…')}</div>`;
+  const grilla = $('#grilla', el);
+  $$('[data-m]', el).forEach(b => b.onclick = () => { mes = moverMes(mes, +b.dataset.m); history.replaceState(null, '', '#reportes?mes=' + mes); cargar(); });
+  api('/api/estado').then(s => { $('#avisos', el).innerHTML = [s.metricool.aviso, s.ia.aviso].filter(Boolean).map(a => `<p class="aviso warn">${esc(a)}</p>`).join(''); }).catch(() => {});
+
+  async function cargar() {
+    $('#mes', el).textContent = tituloMes(mes);
+    try {
+      const { clientes } = await api('/api/reportes?mes=' + mes);
+      grilla.innerHTML = clientes.length ? clientes.map(c => {
+        const r = c.reporte, marcas = c.config.marcas.filter(m => m.activa !== false);
+        return `<article class="card cli" ${r ? `data-abrir="${esc(r.id)}" tabindex="0"` : ''}>
+          <span>${r ? `<span class="etq estado ${esc(r.estado)}">${esc(ESTADO[r.estado])}</span>` : '<span class="etq estado sin">Sin crear</span>'}</span>
+          <b>${esc(c.nombre)}</b>
+          <p>${marcas.length > 1 ? esc(plural(marcas.length, 'marca', 'marcas')) + ' · ' : ''}${esc([...new Set(marcas.flatMap(m => m.redes))].map(x => REDES[x]).join(', '))}${c.config.escucha ? ' · social listening' : ''}</p>
+          <div class="meta">${r ? `<span>${r.datosEn ? `Datos del ${esc(fechaHora(r.datosEn))}` : 'Sin datos todavía'}</span><span>${esc(corto(r.editadoPor))}</span>`
+            : `<button class="btn sm pk" data-crear="${esc(c.id)}">Crear reporte</button>`}</div>
+        </article>`;
+      }).join('') : vacio('No hay clientes', 'Agrégalos en la pestaña Clientes.');
+      $$('[data-abrir]', grilla).forEach(a => { a.onclick = () => location.hash = 'reporte/' + a.dataset.abrir; a.onkeydown = e => e.key === 'Enter' && a.click(); });
+      $$('[data-crear]', grilla).forEach(b => b.onclick = e => { e.stopPropagation(); crear(b); });
+    } catch (e) { grilla.innerHTML = fallo(e); $('[data-reintentar]', grilla)?.addEventListener('click', cargar); }
+  }
+  async function crear(b) {
+    b.disabled = true; b.textContent = 'Creando…';
+    try {
+      const r = await api('/api/reportes', { method: 'POST', body: { cliente: b.dataset.crear, mes } });
+      location.hash = 'reporte/' + r.id + '?nuevo=1';
+    } catch (e) { toast(e.message, true); b.disabled = false; b.textContent = 'Crear reporte'; }
+  }
+  await cargar();
+}
+
+/* ============================================================ constructor de un reporte */
+async function vistaReporte(el, id) {
+  let R = null, ocupado = '';
+  el.innerHTML = cargando('Abriendo el reporte…');
+  const guardando = new Map();   // clave → promesa del guardado en curso
+
+  async function cargar() { R = await api('/api/reportes/' + id); pintar(); }
+  function pintar() {
+    const M = R.modelo, sinDatos = !R.datosEn;
+    el.innerHTML = `
+      <div class="editor-cab">
+        <a class="volver-mes" href="#reportes?mes=${esc(R.mes)}">← ${esc(tituloMes(R.mes))}</a>
+        <div class="ed-tit"><h1>${esc(R.clienteNombre)} <em>${esc(tituloMes(R.mes))}</em></h1>
+          <span class="etq estado ${esc(R.estado)}">${esc(ESTADO[R.estado])}</span></div>
+        <div class="ed-meta">
+          <label>Datos hasta <input type="date" id="hasta" value="${esc(R.hasta)}" min="${esc(R.mes)}-01" max="${esc(R.mes)}-31"></label>
+          <span>${R.datosEn ? `Datos de ${esc(ORIGEN[R.datosOrigen] || R.datosOrigen)} · ${esc(fechaHora(R.datosEn))}` : 'Todavía sin datos'}</span>
+          <span id="guardado"></span>
+        </div>
+      </div>
+      <div class="herramientas no-imprimir">
+        <button class="btn ${sinDatos ? 'pk' : ''}" data-a="datos" title="Trae de Metricool el mes y el mismo tramo del mes anterior">↻ Actualizar datos</button>
+        <button class="btn" data-a="proponer" ${sinDatos || R.ia.modo === 'apagado' ? 'disabled' : ''} title="${esc(R.ia.aviso || 'Claude redacta los textos vacíos. Tú los revisas y corriges.')}">✦ Proponer textos</button>
+        ${M.conEscucha ? `<button class="btn" data-a="escucha" ${R.ia.modo === 'apagado' ? 'disabled' : ''} title="Sube el PDF mensual de Brandwatch; Claude lo lee y arma las láminas">⇪ Subir Brandwatch</button>` : ''}
+        <button class="btn" data-a="presentar" ${sinDatos ? 'disabled' : ''}>▶ Presentar</button>
+        <span class="sep"></span>
+        ${R.estado === 'listo'
+          ? `<button class="btn pk" data-a="link">Copiar link del cliente</button><button class="btn" data-a="borrador">Volver a borrador</button>`
+          : `<button class="btn pk" data-a="listo" ${sinDatos ? 'disabled' : ''}>Marcar listo</button>`}
+        <details class="mas"><summary class="btn">Más</summary><div class="menu">
+          <button data-a="proponerTodo" ${sinDatos || R.ia.modo === 'apagado' ? 'disabled' : ''}>Reescribir todos los textos con IA</button>
+          <button data-a="importar">Importar datos (JSON)</button>
+          <button data-a="pdf" ${sinDatos ? 'disabled' : ''}>Guardar en PDF</button>
+          <button data-a="nuevoLink">Cambiar el link del cliente</button>
+          <button data-a="papelera" class="rojo">Mandar a la papelera</button>
+        </div></details>
+      </div>
+      ${ocupado ? `<p class="aviso trabajando-a"><span class="giro"></span>${esc(ocupado)}</p>` : ''}
+      ${R.metricool.aviso && (R.datosOrigen === 'simulado' || !R.datosEn) ? `<p class="aviso warn">${esc(R.metricool.aviso)}</p>` : ''}
+      ${M.simulado ? '<p class="aviso warn">Estos números son inventados (modo de prueba). No compartas este reporte.</p>' : ''}
+      ${sinDatos ? vacio('Este reporte todavía no tiene datos', 'Actualiza los datos para traer de Metricool el mes y el mismo tramo del mes anterior.', '<button class="btn pk" data-a="datos">↻ Actualizar datos</button>')
+        : `<p class="nota ayuda">Así lo verá el cliente. Haz clic en cualquier texto para escribirlo; se guarda solo. <b>**negrita**</b> y línea en blanco para un párrafo nuevo. ${faltan()}</p>
+           <div class="laminas" id="laminas">${laminas(M, { textos: R.textos, editable: true, claves: R.claves })}</div>`}`;
+    $$('[data-a]', el).forEach(b => b.onclick = () => { b.closest('details')?.removeAttribute('open'); ACC[b.dataset.a](b); });
+    $('#hasta', el).onchange = e => cambiarHasta(e.target);
+    const ls = $('#laminas', el); if (ls) conectarTextos(ls);
+  }
+  const faltan = () => { const n = R.claves.filter(k => !(R.textos[k.clave] || '').trim()).length; return n ? `Faltan <b>${plural(n, 'texto', 'textos')}</b>.` : 'Todos los textos están escritos.'; };
+
+  async function trabajar(texto, fn) {
+    if (ocupado) return toast('Espera a que termine lo anterior.', true);
+    await Promise.all(guardando.values());
+    ocupado = texto; pintar();
+    try { await fn(); } catch (e) { toast(e.message, true); } finally { ocupado = ''; pintar(); }
+  }
+
+  const ACC = {
+    datos: () => trabajar('Trayendo los datos de Metricool…', async () => { R = await api(`/api/reportes/${id}/datos`, { method: 'POST' }); toast('Datos actualizados.'); }),
+    proponer: () => trabajar('Claude está redactando los textos vacíos…', async () => {
+      R = await api(`/api/reportes/${id}/proponer`, { method: 'POST', body: {} });
+      toast(R.propuestos.length ? `${plural(R.propuestos.length, 'texto propuesto', 'textos propuestos')}. Revísalos antes de marcar listo.` : 'No había textos vacíos.');
+    }),
+    async proponerTodo() {
+      if (!await confirmar({ titulo: '¿Reescribir todos los textos?', texto: 'Claude reemplaza también los textos que ya escribió el equipo. Lo anterior no se guarda aparte.', boton: 'Reescribir todo', peligro: true })) return;
+      trabajar('Claude está reescribiendo todos los textos…', async () => { R = await api(`/api/reportes/${id}/proponer`, { method: 'POST', body: { reemplazar: true } }); toast('Textos reescritos. Revísalos.'); });
+    },
+    escucha() {
+      const i = document.createElement('input'); i.type = 'file'; i.accept = 'application/pdf';
+      i.onchange = () => { const f = i.files[0]; if (!f) return;
+        if (f.size > 25e6) return toast('El PDF pesa más de 25 MB.', true);
+        trabajar(`Claude está leyendo «${f.name}»…`, async () => {
+          const r = await fetch(`/api/reportes/${id}/escucha`, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: f });
+          const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'No se pudo leer el PDF.');
+          R = j; toast('Social listening cargado. Revisa las láminas.');
+        });
+      };
+      i.click();
+    },
+    presentar: () => { const ls = $('#laminas', el); if (ls) presentar(ls); },
+    pdf: () => print(),
+    async listo() {
+      const n = R.claves.filter(k => !(R.textos[k.clave] || '').trim()).length;
+      if (!await confirmar({ titulo: '¿Marcar listo para el cliente?', boton: 'Marcar listo',
+        texto: `El link del cliente empieza a mostrar el reporte.${n ? ` <b>Quedan ${plural(n, 'texto vacío', 'textos vacíos')}</b>: esos espacios no aparecen.` : ''} Puedes seguir corrigiendo después.` })) return;
+      trabajar('Guardando…', async () => { R = await api('/api/reportes/' + id, { method: 'PATCH', body: { estado: 'listo' } }); copiar(); });
+    },
+    borrador: () => trabajar('Guardando…', async () => { R = await api('/api/reportes/' + id, { method: 'PATCH', body: { estado: 'borrador' } }); toast('Volvió a borrador: el link del cliente deja de mostrarlo.'); }),
+    link: () => copiar(),
+    async nuevoLink() {
+      if (!await confirmar({ titulo: '¿Cambiar el link del cliente?', texto: 'El link anterior deja de funcionar. Úsalo si el link llegó a quien no debía.', boton: 'Cambiar link', peligro: true })) return;
+      trabajar('Cambiando el link…', async () => { R = await api(`/api/reportes/${id}/nuevo-link`, { method: 'POST' }); toast('Link cambiado.'); });
+    },
+    async importar() {
+      const d = await dialogo(`<form class="form"><h2>Importar datos</h2>
+        <p class="nota">Pega los datos en el formato de la herramienta: <code>{ "marca": { "actual": {…}, "anterior": {…} } }</code>. Sirve para cargar datos sacados con el conector de Metricool mientras no esté la clave. Reemplaza los datos actuales del reporte.</p>
+        <label class="campo">JSON<textarea name="json" rows="10" required autofocus></textarea></label>
+        <p class="aviso crit" data-error hidden></p>
+        <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Importar</button></div></form>`, {
+        alEnviar: async f => { let datos; try { datos = JSON.parse(f.json); } catch { throw new Error('El JSON no es válido.'); }
+          return api(`/api/reportes/${id}/importar`, { method: 'POST', body: { datos: datos.datos || datos, origen: 'conector' } }); }
+      });
+      if (d) { R = d; pintar(); toast('Datos importados.'); }
+    },
+    async papelera() {
+      if (!await confirmar({ titulo: '¿Mandar este reporte a la papelera?', texto: 'El link del cliente deja de funcionar. Se puede restaurar desde la Papelera.', boton: 'Mandar a la papelera', peligro: true })) return;
+      try { await api('/api/reportes/' + id, { method: 'DELETE' }); toast('Reporte en la papelera.'); location.hash = 'reportes?mes=' + R.mes; } catch (e) { toast(e.message, true); }
+    }
+  };
+  async function copiar() {
+    try { await navigator.clipboard.writeText(R.link); toast('Link del cliente copiado. Lo abre sin cuenta.'); }
+    catch { await dialogo(`<div class="form"><h2>Link del cliente</h2><input readonly value="${esc(R.link)}" onfocus="this.select()"><div class="fin"><button class="btn" data-cancelar>Cerrar</button></div></div>`); }
+  }
+  async function cambiarHasta(inp) {
+    try {
+      R = await api('/api/reportes/' + id, { method: 'PATCH', body: { hasta: inp.value } });
+      pintar(); toast('Fecha de corte cambiada. Actualiza los datos para recalcular.');
+    } catch (e) { toast(e.message, true); inp.value = R.hasta; }
+  }
+
+  /* textos: clic para editar; al salir del texto se guarda */
+  function conectarTextos(ls) {
+    ls.addEventListener('click', e => { const t = e.target.closest('.txt.editable'); if (t && !t.isContentEditable) editar(t); });
+    ls.addEventListener('keydown', e => { const t = e.target.closest('.txt.editable'); if (t && !t.isContentEditable && e.key === 'Enter') { e.preventDefault(); editar(t); } });
+  }
+  function editar(t) {
+    const clave = t.dataset.clave, base = R.textos[clave] || '';
+    t.contentEditable = 'plaintext-only'; t.classList.add('editando'); t.textContent = base; t.focus();
+    const r = document.createRange(); r.selectNodeContents(t); r.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(r);
+    t.onkeydown = e => { if (e.key === 'Escape') { e.preventDefault(); t.textContent = base; t.blur(); } if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) t.blur(); };
+    t.onblur = () => {
+      t.onblur = t.onkeydown = null; t.contentEditable = 'false'; t.classList.remove('editando');
+      const nuevo = t.innerText.replace(/\u00a0/g, ' ').trim();
+      const p = guardarTexto(t, clave, nuevo, base); guardando.set(clave, p); p.finally(() => guardando.delete(clave));
+    };
+  }
+  async function guardarTexto(t, clave, nuevo, base) {
+    t.classList.toggle('vacio', !nuevo);
+    if (nuevo === base) { t.innerHTML = nuevo ? formatearLocal(nuevo) : ''; return; }
+    t.innerHTML = nuevo ? formatearLocal(nuevo) : '';
+    const g = $('#guardado', el); if (g) g.textContent = 'Guardando…';
+    try {
+      const r = await api('/api/reportes/' + id, { method: 'PATCH', body: { textos: { [clave]: nuevo }, rev: R.rev, base: { [clave]: base } } });
+      R.textos = r.textos; R.rev = r.rev;
+      if (g) g.textContent = 'Guardado ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+      const ayuda = $('.ayuda', el); if (ayuda) ayuda.innerHTML = ayuda.innerHTML.replace(/(Faltan <b>.*?<\/b>\.|Todos los textos están escritos\.)$/, faltan());
+    } catch (e) {
+      if (g) g.textContent = '';
+      toast(e.message, true);
+      if (/Recarga/.test(e.message)) { await cargar(); }
+    }
+  }
+  salir = () => Promise.all(guardando.values());
+  addEventListener('beforeunload', e => { if (guardando.size) e.preventDefault(); });
+  await cargar();
+}
+
+/* ============================================================ clientes */
+async function vistaClientes(el) {
+  el.innerHTML = `<div class="cabeza"><div><span class="label pk">Reportería RRSS</span><h1>Clientes</h1></div>
+      <div class="acciones"><button class="btn pk" id="nuevo">+ Nuevo cliente</button></div></div>
+    <p class="nota">Qué marcas se reportan, su número en Metricool, sus redes y los lineamientos que sigue la IA al redactar. Los cambios valen para los reportes que se actualicen después.</p>
+    <div class="grilla" id="grilla">${cargando()}</div>`;
+  const grilla = $('#grilla', el);
+  let lista = [];
+  async function cargar() {
+    try {
+      lista = (await api('/api/clientes')).clientes;
+      grilla.innerHTML = lista.map(c => `<article class="card" data-id="${esc(c.id)}" tabindex="0"><b>${esc(c.nombre)}</b>
+        <p>${c.config.marcas.map(m => `${esc(m.nombre)}${m.activa === false ? ' (no se reporta)' : ''}`).join(' · ')}</p>
+        <div class="meta"><span>${c.config.escucha ? 'Con social listening' : ''}</span><span>${c.editadoPor ? 'Editado por ' + esc(corto(c.editadoPor)) : ''}</span></div></article>`).join('')
+        || vacio('No hay clientes', 'Crea el primero.');
+      $$('[data-id]', grilla).forEach(a => { a.onclick = () => editar(lista.find(c => c.id === a.dataset.id)); a.onkeydown = e => e.key === 'Enter' && a.click(); });
+    } catch (e) { grilla.innerHTML = fallo(e); $('[data-reintentar]', grilla)?.addEventListener('click', cargar); }
+  }
+  $('#nuevo', el).onclick = async () => {
+    const r = await dialogo(`<form class="form"><h2>Nuevo cliente</h2><label class="campo">Nombre<input name="nombre" required maxlength="60" autofocus></label>
+      <p class="aviso crit" data-error hidden></p><div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Crear</button></div></form>`,
+      { alEnviar: d => api('/api/clientes', { method: 'POST', body: d }) });
+    if (r) { toast('Cliente creado. Completa su número de Metricool.'); await cargar(); editar(lista.find(c => c.id === r.id)); }
+  };
+
+  const filaMarca = (m = {}) => `<fieldset class="marca-f">
+    <div class="dos"><label class="campo">Marca<input data-k="nombre" value="${esc(m.nombre)}" required maxlength="60"></label>
+      <label class="campo">Número en Metricool <small>blogId</small><input data-k="blogId" value="${esc(m.blogId)}" inputmode="numeric" pattern="\\d*"></label></div>
+    <div class="dos"><label class="campo">Nombre largo <small>Opcional, para los títulos</small><input data-k="nombreLargo" value="${esc(m.nombreLargo)}" maxlength="80"></label>
+      <label class="campo">Color <small>Opcional</small><input data-k="color" type="color" value="${esc(m.color || '#fc3297')}" ${m.color ? '' : 'data-sin-color'}></label></div>
+    <div class="redes-f">${Object.entries(REDES).map(([k, v]) => `<label class="campo check"><input type="checkbox" data-red="${k}" ${(m.redes || []).includes(k) ? 'checked' : ''}> ${v}</label>`).join('')}</div>
+    <div class="redes-f"><label class="campo check"><input type="checkbox" data-k="activa" ${m.activa !== false ? 'checked' : ''}> Se reporta</label>
+      <label class="campo check"><input type="checkbox" data-k="competencia" ${m.competencia !== false ? 'checked' : ''}> Con competencia de Instagram</label>
+      <button type="button" class="btn sm peligro" data-quitar>Quitar marca</button></div>
+    <input type="hidden" data-k="id" value="${esc(m.id)}">
+  </fieldset>`;
+
+  async function editar(c) {
+    const cfg = c.config;
+    const r = await dialogo(`<form class="form ancho"><h2>${esc(c.nombre)}</h2>
+      <label class="campo">Nombre del cliente<input name="nombre" value="${esc(c.nombre)}" required maxlength="60"></label>
+      <span class="label">Marcas</span><div id="marcas">${cfg.marcas.map(filaMarca).join('')}</div>
+      <button type="button" class="btn sm" id="otra">+ Agregar marca</button>
+      <div class="dos"><label class="campo check"><input type="checkbox" name="escucha" ${cfg.escucha ? 'checked' : ''}> Social listening (PDF de Brandwatch)</label>
+        <label class="campo">Pauta estimada en TikTok <small>Videos con estas vistas o más. 0 = sin regla</small><input name="pauta" type="number" min="0" step="1000" value="${esc(cfg.reglas?.pautaTiktok || 0)}"></label></div>
+      <label class="campo">Lineamientos para los textos <small>Los lee la IA al redactar: tono, qué destacar, qué evitar</small><textarea name="lineamientos" rows="8" maxlength="4000">${esc(cfg.lineamientos)}</textarea></label>
+      <p class="aviso crit" data-error hidden></p>
+      <div class="fin">${ctx.yo.admin ? '<button type="button" class="btn peligro izq" data-papelera>Mandar a la papelera</button>' : ''}<button type="button" class="btn" data-cancelar>Cancelar</button><button class="btn pk">Guardar</button></div></form>`, {
+      alAbrir: (d, cerrar) => {
+        const cont = $('#marcas', d);
+        $('#otra', d).onclick = () => cont.insertAdjacentHTML('beforeend', filaMarca({ redes: ['instagram'] }));
+        cont.addEventListener('click', e => { if (e.target.closest('[data-quitar]')) e.target.closest('fieldset').remove(); });
+        cont.addEventListener('input', e => { if (e.target.type === 'color') delete e.target.dataset.sinColor; });
+        $('[data-papelera]', d)?.addEventListener('click', async () => {
+          if (!await confirmar({ titulo: `¿Mandar ${esc(c.nombre)} a la papelera?`, texto: 'Deja de aparecer en la grilla. Sus reportes y links siguen funcionando. Se puede restaurar.', boton: 'Mandar a la papelera', peligro: true })) return;
+          try { await api('/api/clientes/' + c.id, { method: 'DELETE' }); cerrar({ papelera: true }); } catch (x) { toast(x.message, true); }
+        });
+      },
+      alEnviar: (f, d) => {
+        const marcas = $$('#marcas fieldset', d).map(fs => {
+          const v = k => $(`[data-k="${k}"]`, fs);
+          return { id: v('id').value, nombre: v('nombre').value, blogId: v('blogId').value, nombreLargo: v('nombreLargo').value,
+            color: v('color').dataset.sinColor != null ? '' : v('color').value, activa: v('activa').checked, competencia: v('competencia').checked,
+            redes: $$('[data-red]', fs).filter(x => x.checked).map(x => x.dataset.red) };
+        });
+        return api('/api/clientes/' + c.id, { method: 'PATCH', body: { nombre: f.nombre, config: { marcas, escucha: !!f.escucha, reglas: { pautaTiktok: +f.pauta || 0 }, lineamientos: f.lineamientos } } });
+      }
+    });
+    if (r) { toast(r.papelera ? 'Cliente en la papelera.' : 'Cliente guardado.'); cargar(); }
+  }
+  await cargar();
+}
+
+/* ============================================================ papelera */
+async function vistaPapelera(el) {
+  el.innerHTML = `<div class="cabeza"><div><span class="label pk">Reportería RRSS</span><h1>Papelera</h1></div></div>
+    <p class="aviso">Lo que está aquí no se borra solo y se puede restaurar. Si hay que borrar algo del todo, se le pide a Bruno.</p><div id="caja">${cargando()}</div>`;
+  const caja = $('#caja', el);
+  async function cargar() {
+    try {
+      const { reportes, clientes } = await api('/api/papelera');
+      const filas = [...reportes.map(r => ({ tipo: 'reportes', id: r.id, nombre: `${r.cliente} · ${tituloMes(r.mes)}`, por: r.papeleraPor, en: r.papeleraEn })),
+        ...clientes.map(c => ({ tipo: 'clientes', id: c.id, nombre: `Cliente ${c.nombre}`, por: '', en: c.papeleraEn, admin: true }))];
+      caja.innerHTML = !filas.length ? vacio('La papelera está vacía')
+        : `<div class="bloque"><div class="tabla-caja"><table class="tabla"><thead><tr><th>Qué</th><th>La mandó</th><th>Cuándo</th><th></th></tr></thead><tbody>
+          ${filas.map(f => `<tr><td><b>${esc(f.nombre)}</b></td><td>${esc(corto(f.por))}</td><td><small>${esc(fechaHora(f.en))}</small></td>
+            <td>${!f.admin || ctx.yo.admin ? `<button class="btn sm" data-r="${esc(f.tipo)}/${esc(f.id)}">Restaurar</button>` : ''}</td></tr>`).join('')}</tbody></table></div></div>`;
+      $$('[data-r]', caja).forEach(b => b.onclick = async () => {
+        b.disabled = true;
+        try { await api(`/api/${b.dataset.r}/restaurar`, { method: 'POST' }); toast('Restaurado.'); cargar(); } catch (e) { toast(e.message, true); b.disabled = false; }
+      });
+    } catch (e) { caja.innerHTML = fallo(e); $('[data-reintentar]', caja)?.addEventListener('click', cargar); }
+  }
+  await cargar();
+}
+
+/* ============================================================ actividad (solo administradores) */
+async function vistaActividad(el) {
+  if (!ctx.yo.admin) { el.innerHTML = vacio('Solo administradores', 'La actividad la ven Bruno y Emilio.'); return; }
+  el.innerHTML = `<div class="cabeza"><div><span class="label pk">Reportería RRSS · solo administradores</span><h1>Actividad</h1></div></div><div id="caja">${cargando()}</div>`;
+  const filas = (await api('/api/actividad')).filter(r => r.accion !== 'login');
+  const det = d => [d.cliente, d.mes && tituloMes(d.mes), d.nombre, d.origen, d.cambios?.join(', '), d.n != null ? plural(d.n, 'texto', 'textos') : ''].filter(Boolean).join(' · ');
+  $('#caja', el).innerHTML = !filas.length ? vacio('Todavía no hay actividad')
+    : `<div class="bloque"><div class="tabla-caja"><table class="tabla"><thead><tr><th>Cuándo</th><th>Quién</th><th>Qué</th><th>Detalle</th></tr></thead><tbody>
+      ${filas.map(r => `<tr><td><small>${esc(fechaHora(r.cuando))}</small></td><td>${esc(corto(r.quien))}</td><td>${esc(r.accion)}</td><td><small>${esc(det(r.detalle || {}))}</small></td></tr>`).join('')}
+      </tbody></table></div></div>`;
+}
+
+/* ---------- inicio ---------- */
+iniciarBarra().then(({ cfg, yo }) => { Object.assign(ctx, { cfg, yo }); addEventListener('hashchange', ir); ir(); })
+  .catch(e => { $('#vista').innerHTML = fallo(e, false); });
