@@ -1,5 +1,7 @@
 # Reportería RRSS · Monkey System (Digital Labs)
 
+> **Para Bruno, antes de publicar:** lee [TRASPASO.md](TRASPASO.md) y sigue la lista del [issue #2](https://github.com/Javiercruzgh/reporteria-rrss/issues/2). Lo primero es regenerar el token de Metricool, porque el anterior quedó expuesto en un chat. El token nuevo va en Railway (`METRICOOL_TOKEN`) junto con `METRICOOL_USER_ID=2262331`. Sin token, la herramienta funciona con datos de prueba.
+
 Reportes mensuales de redes orgánicas, armados por el equipo sin pasar por Claude y compartidos con el cliente en un link propio.
 
 - **Para el equipo (con la cuenta @monkeylabs.cl):** una grilla con los clientes del mes y el estado de cada reporte. Al abrir uno se ven las láminas tal como las verá el cliente, con los números ya calculados desde Metricool. Los textos se escriben haciendo clic sobre ellos.
