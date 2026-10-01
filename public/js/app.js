@@ -35,7 +35,6 @@ async function vistaMes(el) {
   el.innerHTML = `
     <div class="cabeza"><div><span class="label pk">DigitalLabs · reportes mensuales</span><h1>Reportería <em>RRSS</em></h1></div>
       <div class="acciones mes-sel"><button class="btn sm" data-m="-1" aria-label="Mes anterior">←</button><b id="mes"></b><button class="btn sm" data-m="1" aria-label="Mes siguiente">→</button>
-        <button class="btn" id="paquete" title="Carga clientes y datos de un mes desde un archivo (por ejemplo, los sacados con el conector de Metricool)">⇪ Importar archivo</button>
         <button class="btn pk" id="nuevo">+ Nuevo reporte</button></div></div>
     <div id="avisos"></div>
     <div class="grilla" id="grilla">${cargando('Cargando clientes…')}</div>`;
@@ -50,20 +49,6 @@ async function vistaMes(el) {
       <div class="fin"><button type="button" class="btn" data-cancelar>Cancelar</button>${libres.length ? '<button class="btn pk">Crear reporte</button>' : ''}</div></form>`,
       { alEnviar: f => api('/api/reportes', { method: 'POST', body: { cliente: f.cliente, mes } }) });
     if (r?.id) location.hash = 'reporte/' + r.id;
-  };
-  $('#paquete', el).onclick = () => {
-    const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,application/json';
-    i.onchange = async () => { const f = i.files[0]; if (!f) return;
-      let p; try { p = JSON.parse(await f.text()); } catch { return toast('El archivo no es válido.', true); }
-      if (!await confirmar({ titulo: `¿Importar «${esc(f.name)}»?`, boton: 'Importar',
-        texto: `Trae ${plural((p.clientes || []).length, 'cliente', 'clientes')} con sus datos de ${/^\d{4}-\d{2}$/.test(p.mes || '') ? esc(tituloMes(p.mes)) : 'un mes sin indicar'}. Los clientes que faltan se crean; los reportes de ese mes que ya existen reciben los datos nuevos (los textos y láminas no se tocan).` })) return;
-      try {
-        const r = await api('/api/paquete', { method: 'POST', body: p });
-        toast(`Listo: ${plural(r.clientes.length, 'reporte', 'reportes')} de ${tituloMes(r.mes)} con datos.`);
-        mes = r.mes; history.replaceState(null, '', '#reportes?mes=' + mes); cargar();
-      } catch (e) { toast(e.message, true); }
-    };
-    i.click();
   };
   $$('[data-m]', el).forEach(b => b.onclick = () => { mes = moverMes(mes, +b.dataset.m); history.replaceState(null, '', '#reportes?mes=' + mes); cargar(); });
   api('/api/estado').then(s => { $('#avisos', el).innerHTML = [s.metricool.aviso, s.ia.aviso].filter(Boolean).map(a => `<p class="aviso warn">${esc(a)}</p>`).join(''); }).catch(() => {});

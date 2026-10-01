@@ -7,7 +7,6 @@ import path from 'node:path';
 import * as C from './lib/config.js';
 import { registrar } from './lib/db.js';
 import { sesion, verificarGoogle, cookieSesion, cookieSalir } from './lib/auth.js';
-import { importarPaquete } from './lib/paquete.js';
 import * as reportes from './lib/reportes.js';
 import * as clientes from './lib/clientes.js';
 import { estado as estadoMetricool, listarMarcas } from './lib/metricool.js';
@@ -114,7 +113,6 @@ async function manejar(req, res) {
   // ---- reportes
   if (ruta === '/api/reportes' && M === 'GET') return enviar(res, 200, reportes.mes(url.searchParams.get('mes') || ''));
   if (ruta === '/api/reportes' && M === 'POST') return enviar(res, 201, reportes.crear(u, await leerJson(req)));
-  if (ruta === '/api/paquete' && M === 'POST') return enviar(res, 200, importarPaquete(u, await leerJson(req, 40e6)));
   if (ruta === '/api/papelera') return enviar(res, 200, reportes.papelera());
   if (partes[0] === 'api' && partes[1] === 'reportes' && partes[2]) {
     const id = partes[2], acc = partes[3];
