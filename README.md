@@ -1,6 +1,6 @@
 # Reportería RRSS · Monkey System (Digital Labs)
 
-> **Para Bruno, antes de publicar:** lee [TRASPASO.md](TRASPASO.md) y sigue la lista del [issue #2](https://github.com/Javiercruzgh/reporteria-rrss/issues/2). Lo primero es regenerar el token de Metricool, porque el anterior quedó expuesto en un chat. El token nuevo va en Railway (`METRICOOL_TOKEN`) junto con `METRICOOL_USER_ID=2262331`. Sin token, la herramienta funciona con datos de prueba.
+> **Para Bruno, antes de publicar:** lee [TRASPASO.md](TRASPASO.md) y sigue la lista del [issue #2](https://github.com/Javiercruzgh/reporteria-rrss/issues/2). Lo primero es regenerar el token de Metricool, porque el anterior quedó expuesto en un chat. El token nuevo va en Railway (`METRICOOL_TOKEN`) junto con `METRICOOL_USER_ID=2262331` y la clave de Claude (`ANTHROPIC_API_KEY`), que hace los textos y lee Brandwatch de forma automática. Sin token, la herramienta funciona con datos de prueba.
 
 Reportes mensuales de redes orgánicas, armados por el equipo sin pasar por Claude y compartidos con el cliente en un link propio.
 

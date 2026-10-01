@@ -10,7 +10,7 @@ Herramienta nueva de Digital Labs, hecha por Javier (director) desde `plantilla-
   - insight y evidencia por marca;
   - competencia, optimizaciones y social listening (desde el PDF de Brandwatch);
   - cajas de texto e imágenes, y una lámina en blanco.
-- La IA es opcional: propone textos y lee el PDF de Brandwatch. Sin clave, los textos se escriben a mano.
+- La IA (Claude) redacta los textos y lee el PDF de Brandwatch, para bajar al mínimo las horas del equipo: el equipo solo revisa y corrige. Por eso la clave es necesaria desde el primer día.
 - El cliente ve el reporte en un link propio (`/r/<token>`), sin cuenta, solo cuando el equipo lo marca «listo». Puede presentarlo o guardarlo en PDF.
 - Varias personas pueden editar al mismo tiempo: un aviso muestra los cambios de otros y un historial guarda quién hizo qué.
 - El uso está en el [README](README.md) y lo técnico en [CLAUDE.md](CLAUDE.md).
@@ -37,7 +37,7 @@ Herramienta nueva de Digital Labs, hecha por Javier (director) desde `plantilla-
 | `DATA_DIR` | `/data` (el volumen) | Sí |
 | `METRICOOL_TOKEN` | **El token nuevo**, el regenerado | Sí, para datos reales |
 | `METRICOOL_USER_ID` | `2262331` (la cuenta de bruno@, dueña de las marcas). No es secreto. | Sí, para datos reales |
-| `ANTHROPIC_API_KEY` | Clave de Claude | No: sin ella, los textos se escriben a mano. Costo estimado: USD 2 a 3 al mes |
+| `ANTHROPIC_API_KEY` | Clave de Claude | Sí: sin ella no hay textos automáticos ni lectura de Brandwatch, y todo se escribe a mano. Costo estimado: USD 2 a 3 al mes |
 | `ADMINS` | `bruno@monkeylabs.cl,emilio@monkeylabs.cl` | Ya viene por defecto |
 
 **Para más adelante (no está programado):** elegir imágenes directo desde Drive con Google Picker. Hace falta habilitar la Picker API en el proyecto «Grillas MonkeyLabs» y crear una clave de API restringida al dominio. Hoy las imágenes se suben desde el computador; con Google Drive para escritorio, las carpetas de Drive aparecen ahí.
