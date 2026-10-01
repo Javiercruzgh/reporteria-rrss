@@ -2,10 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "herramienta",
+      "name": "reporteria-rrss",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server.js"],
-      "port": 5001
+      "runtimeArgs": [
+        "server.js"
+      ],
+      "port": 5003
     }
   ]
 }

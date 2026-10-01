@@ -1,84 +1,53 @@
-# Plantilla de herramientas de Monkey System (CLAUDE.md técnico)
+# Reportería RRSS (CLAUDE.md técnico)
 
-Base para cada herramienta nueva. El README explica qué trae, en simple. Aquí va lo necesario para programar sobre ella.
+Herramienta de Digital Labs para Monkey System, creada desde `plantilla-monkeylabs`. Reportes mensuales de redes orgánicas desde Metricool: el equipo los arma en el constructor y el cliente los ve en un link propio. El README explica el uso; aquí va lo necesario para programar.
 
-**Regla principal:**
-- **Esta plantilla** (`brunopero-sudo/plantilla-monkeylabs`) **es de solo lectura para los directores.** Cada herramienta nace en un repo propio, creado con «Use this template» en la cuenta del director.
-- **En el repo del director:**
-  - se programa y se prueba en local;
-  - no hay Railway, Vercel ni claves reales;
-  - unir a su `main` no publica nada.
-
-  Igual conviene trabajar con commits chicos y ramas cortas.
-- **Al aprobarse, el repo se copia a `brunopero-sudo`.** Desde ahí rigen las reglas de siempre:
-  - rama y pull request, nunca un push a `main` ni un pull request encima de otro;
-  - solo Bruno decide qué sale a producción, con **«publica en operativo»**.
-- **Secretos:**
-  - las claves reales, nunca;
-  - las de prueba de servicios externos las pega el director directo en `.env` (fuera de git), y Claude no las pide, no las lee ni las pega;
-  - en git solo va `.env.example`, sin valores.
-- **Todo en español de Chile:** interfaz, textos, commits y pull requests.
-- **Gobernanza:** está en `CLAUDE.md` y en [`GUIA.md`](https://github.com/brunopero-sudo/plataformas-monkeylabs/blob/main/GUIA.md) de `plataformas-monkeylabs`. El camino completo está en `docs/PASO-A-OPERATIVO.md`.
+**Reglas (vienen de la plantilla y de `plataformas-monkeylabs`):**
+- Repo del director (`Javiercruzgh/reporteria-rrss`) hasta que Bruno la apruebe; después se copia a `brunopero-sudo` y rigen rama + pull request y «publica en operativo».
+- **Secretos:** `METRICOOL_TOKEN` y `ANTHROPIC_API_KEY` solo en `.env` (local) o Railway (Bruno). Claude no los pide, no los lee ni los pega. En git solo va `.env.example`, sin valores.
+- **Datos de clientes nunca van a git** (`data/` está en `.gitignore`). Las cuentas de Metricool de los clientes solo se leen.
+- Todo en español de Chile.
 
 ## Comandos
 
-- `npm start`: http://localhost:5001, modo local. Sin login (entra como `pruebas@monkeylabs.cl`, administradora) y con datos de ejemplo.
-- `npm run pruebas`: lo mismo en modo pruebas (franja «AMBIENTE DE PRUEBAS» y base aparte).
-- `npm run dev`: como `npm start`, pero se reinicia al guardar.
-- `npm test`: pruebas unitarias y el flujo completo contra el servidor. Todas deben pasar antes de pedir el OK.
-- `npm run entrada`: revisa `herramienta.json` y muestra la entrada que Media Labs agrega en Monkey System.
-- `scripts/clave-sesion.mjs`: lo ejecuta Bruno, nunca Claude. Crea `SESSION_SECRET` en memoria y la manda a Railway por la entrada estándar; en pantalla solo sale su huella. Sin `--cambiar` es un ensayo.
-- **Antes de levantar el servidor,** revisar que el puerto esté libre (`lsof -nP -iTCP:<puerto> -sTCP:LISTEN`).
-- **En el navegador de la app,** la configuración es «herramienta», en `.claude/launch.json` del repo; su puerto tiene que calzar con `herramienta.json`.
-- **En el repo de Bruno,** el Orquestador agrega además la entrada en el `launch.json` del mapa.
+- `npm install` (una vez: la única dependencia es `@anthropic-ai/sdk`).
+- `npm start`: http://localhost:5003, modo local, sin login (entra como `pruebas@monkeylabs.cl`, administradora). Sin `METRICOOL_TOKEN`, Metricool se simula.
+- `npm run pruebas`, `npm run dev`, `npm run entrada`: como en la plantilla.
+- `npm test`: unidad (períodos, cálculos, textos, clientes, modos) y flujo contra el servidor en los puertos 5900–5999, siempre con `METRICOOL_MODO=simulado` e `IA_MODO=simulado`.
+- Antes de levantar el servidor, revisar que el puerto esté libre.
 
 ## Arquitectura
 
-Node 24 sin framework, sin build y sin dependencias (si una hace falta de verdad, se justifica en el pull request).
+Node 24 sin framework ni build. Una dependencia justificada: `@anthropic-ai/sdk` (el Dockerfile corre `npm ci --omit=dev`).
 
-- `server.js`: HTTP nativo. Primero van las rutas públicas (`/api/config`, login, `login.html`, `/css/`, `/assets/`); desde «solo el equipo», todo pide sesión. El bloque de la herramienta de ejemplo está marcado.
-- `lib/`:
-  - `config.js`: variables de entorno y los tres modos.
-  - `auth.js`: el mismo login de Monkey System (Google Identity Services → tokeninfo → cookie firmada `mh_s`).
-  - `db.js`: `node:sqlite`, con un archivo por modo, el registro de actividad y las migraciones idempotentes (`ajuste('migr_…')`).
-  - `tareas.js`: la lógica de la herramienta de ejemplo (validar, guardar, registrar, papelera, lote).
-  - `herramienta.js`: valida `herramienta.json` y lo traduce a una entrada de `lib/sistema.js` de monkey-system.
-- `public/`:
-  - `index.html` + `js/tareas.js`: la herramienta de ejemplo (enrutador por `#hash`).
-  - `js/ui.js`: `api`, `toast`, `dialogo`, `confirmar`, `seleccionMultiple`, estados (`cargando`, `vacio`, `fallo`) e `iniciarBarra`.
-  - `css/sistema.css`: tokens y componentes.
-  - `kit.html`: galería viva de componentes.
-  - `login.html`: autónomo, con su script en línea (no importa nada de `/js/`, que pide sesión).
-- `herramienta.json`: el contrato con la entrada de Monkey System (ver más abajo).
-- `test/`: `unidad.test.js` (contrato, modos y lógica) y `flujo.test.js` (servidor real en los puertos 5900–5999).
-- `Dockerfile`: imagen para Railway (Node 24, sin paquetes).
+- `server.js`: rutas. Públicas: login, `/css/`, `/assets/`, `/publico/` (código de las láminas, sin datos), `/r/<token>` (página del cliente) y `/api/publico/<token>` (el reporte, solo si está `listo`). Lo demás pide sesión.
+- `lib/metricool.js`: `traerMarca(marca, desde, hasta)` → **DatosMarca** normalizado (formato en el comentario inicial). Modos `api` (REST de Metricool con `X-Mc-Auth`; prueba el endpoint v2 y luego los antiguos, y normaliza los nombres de campos), `simulado` (datos inventados con semilla fija) y `apagado` (503 con aviso). **La forma exacta de las respuestas de la API REST no está verificada** con una clave real: al tener clave, probar «Actualizar datos» con Alflorex y comparar con los números del conector (ver «Datos de referencia»).
+- `lib/periodos.js`: el mes (hasta ayer o fin de mes) contra el mismo tramo del mes anterior.
+- `lib/calculos.js`: aritmética pura de DatosMarca a **modelo** (KPI por red, top 3, funnel, competencia, tabla general, resumen por marca y notas metodológicas). Sin IA.
+- `lib/secciones.js`: **nada está fijo por marca.** `CATALOGO` de tipos de lámina (qué piden: marca, red; y sus espacios de texto), `porDefecto(modelo)` (la propuesta según los datos, con ids estables como `alflorex-instagram`) y `validar(lista, cliente)`. `reportes.secciones` guarda la lista armada por el equipo; `null` = la propuesta.
+- Imágenes de las láminas: tabla `imagenes` (BLOB, por reporte). Se suben a `POST /api/reportes/<id>/imagen` (PNG, JPG, WEBP o GIF, revisados por firma; máx. 5 MB) y se usan en las cajas (`bloques`) o en el top (`imagenes: { id de la publicación: id de la imagen }`). Al cliente le llegan por `/api/publico/<token>/imagen/<id>`, solo si el reporte está listo. Drive (Google Picker) necesita que Bruno lo habilite.
+- `lib/textos.js`: `clavesTexto(modelo)`, un espacio por lámina con clave `<id de la sección>.<espacio>` (por ejemplo `resumen.texto`, `alflorex-instagram.lectura`) y lo que pide cada uno. Quitar una lámina no borra sus textos. La IA no escribe las láminas de texto libre (`ia: false`). `public/publico/laminas.js` usa las mismas claves.
+- `lib/ia.js`: `proponerTextos` (salida JSON con `output_config.format`) y `leerBrandwatch` (PDF en base64 como `document`). Modelo `IA_MODELO` (por defecto `claude-opus-5-5`), con streaming y `finalMessage()`. Modos `api`, `simulado` (pruebas) y `apagado`.
+- `lib/reportes.js`: crear (uno por cliente y mes), actualizar e importar datos, editar textos (se mezclan por clave; con `rev` + `base`, un cambio ajeno a la misma clave responde 409), proponer, subir Brandwatch, estado, nuevo link, papelera y `publico(token)`.
+- `lib/clientes.js`: un cliente agrupa marcas de Metricool (`blogId`), con redes, competencia, `reglas.pautaTiktok`, `escucha` (propone la lámina de social listening) y `lineamientos` (los lee la IA). La herramienta parte sin clientes; se crean eligiendo marcas de `listarMarcas()` (`/admin/simpleProfiles` de Metricool, forma sin verificar). Ejemplos de lineamientos en `docs/LINEAMIENTOS.md`.
+- `public/js/app.js`: constructor (grilla del mes, reporte con controles para ordenar, quitar y agregar láminas, clientes con la lista de Metricool, papelera, actividad).
+- `public/publico/`: `laminas.js` (dibuja cada sección con `L[tipo]`; en el constructor, una lámina sin datos muestra un aviso y al cliente no le llega), `reporte.css` (1 em = 16 px en 1280 de ancho; bajo 700 px de contenedor pasa a una columna; impresión a 1280×720), `presentar.js` y `cliente.html`/`cliente.js`.
 
 ## Modos
 
-| | local | pruebas | produccion |
-|---|---|---|---|
-| Cuándo | `npm start` (por defecto fuera de Railway) | `MODO=pruebas` | por defecto en Railway |
-| Login | sin login si no hay `GOOGLE_CLIENT_ID` | Google | Google (obligatorio: sin él no arranca) |
-| Base | `data/herramienta-local.sqlite` | `herramienta-pruebas.sqlite` | `herramienta-produccion.sqlite` |
-| Franja | «LOCAL · DATOS FICTICIOS» | «AMBIENTE DE PRUEBAS · DATOS FICTICIOS» | no |
-| Datos de ejemplo | sí | sí | no |
-| pruebas@ es administradora | sí | sí | no |
-| Drive (`DRIVE_MODO`) | simulado | simulado, siempre | el que se configure |
+Los de la plantilla (local, pruebas, produccion), más:
 
-La franja la agrega el servidor (`conFranja` en `server.js`) a todo HTML fuera de producción. No se programa en cada página, y dentro de un iframe no se muestra. Es la misma de Grillas.
+| | local / pruebas | produccion |
+|---|---|---|
+| Metricool sin clave | simulado (aviso «datos inventados») | apagado (aviso para Bruno) |
+| Metricool con `METRICOOL_TOKEN` + `METRICOOL_USER_ID` | api | api |
+| IA sin `ANTHROPIC_API_KEY` | apagada (textos a mano) | apagada |
 
-## Reemplazar la herramienta de ejemplo
+## Datos de referencia
 
-1. Ajustar:
-   - `herramienta.json`: `id`, `nombre`, `lab`, `descripcion` (máximo 70 caracteres), `ver`, `responsable`, `repo` y un `puerto` libre desde el 5002 (el definitivo lo asigna el mapa al aprobarse);
-   - el `name` de `package.json`;
-   - el puerto de `.claude/launch.json`.
-2. Renombrar `lib/tareas.js` a `lib/<herramienta>.js` y cambiar la tabla en `lib/db.js` (con sus datos de ejemplo). Conservar el patrón: `validar()`, `registrar()` en cada cambio, `aPapelera()`/`restaurar()` en vez de borrar y `lote()` si hay acciones en grupo.
-3. Cambiar el bloque marcado de rutas en `server.js`.
-4. Cambiar `public/js/tareas.js` y la barra de `public/index.html` (nombre con la última palabra en `<em>`, pestañas).
-5. No tocar: `lib/auth.js`, `lib/config.js`, `public/js/ui.js`, `public/css/sistema.css` y `login.html`. Si hace falta un componente nuevo, se agrega a `sistema.css` y al kit, para que lo aprovechen las demás.
-6. Reescribir las pruebas de la herramienta (las de modos, franja y producción se conservan) y `npm test`.
-7. Revisar en el navegador, en escritorio y a 375 px, midiendo con JavaScript si el panel está oculto: sin desplazamiento hacia el lado, la barra de acciones pegada y el diálogo a lo ancho.
+Los reportes standalone de septiembre 2026 (Achs, Alflorex, Muno, Pesas Chile) están en la carpeta del proyecto `reporteria/referencia-septiembre/` (fuera de git). Alflorex del 1 al 28 de septiembre, sacado con el conector de Metricool (brandId 4369569), da: Instagram 6.628 seguidores (6.557 en agosto), 8 carruseles + 3 reels, 22 historias, alcance del feed 4.052 (3.303), 208 interacciones (209); TikTok 481 (459), sin videos en septiembre y 5 en agosto (2.050 vistas). Sirve para comparar cuando la API REST esté conectada.
+
+Campos del conector (Data Studio) que alimentan el formato: `IGPO*` (posts), `IGRE*` (reels), `IGST01/10` (historias), `IGEV01` (seguidores de Instagram, último día), `TKEV07` (seguidores de TikTok), `TKPO*` (videos), `IGCO02/03/07/08/10/12` (competidores; el engagement viene como fracción y se guarda ×1.000).
 
 ## Integraciones con servicios externos
 
@@ -107,13 +76,15 @@ La franja la agrega el servidor (`conFranja` en `server.js`) a todo HTML fuera d
 - **Grillas:** las columnas van con `minmax(0,1fr)` (o `minmax(min(260px,100%),1fr)`). Con `1fr` a secas, el teléfono agranda la página hasta el contenido más ancho. Las tablas van dentro de `.tabla-caja`.
 - **Lo pegajoso** (`position:sticky`) tiene que ser un elemento cuyo contenedor ocupe toda la columna. Por eso es `#sel` y no `.accion-sel`. En el teléfono la barra superior deja de ser pegajosa y solo queda pegada la de acciones.
 - **Escape:** el diálogo lo escucha en `window`, en fase de captura, y lo detiene; así cierra solo el de más arriba y no quita la selección. La selección lo escucha en `document`, también en captura, y no actúa si hay un diálogo abierto.
-- **Lo público vs. la sesión:** solo `login.html`, `/css/`, `/assets/` y `/api/config` se ven sin sesión. Nada con datos o links internos va ahí. En Monkey System, la lista de la entrada estuvo en `/js/` y se podía abrir sin sesión.
+- **Lo público vs. la sesión:** solo `login.html`, `/css/`, `/assets/`, `/publico/`, `/r/<token>`, `/api/publico/<token>` y `/api/config` se ven sin sesión; `/publico/` es solo código, los datos salen de `/api/publico/` y solo si el reporte está listo. Nada con datos o links internos va ahí. En Monkey System, la lista de la entrada estuvo en `/js/` y se podía abrir sin sesión.
 - **Cookies en localhost:** son del host, no del puerto, así que todas las herramientas locales comparten cookies. Por eso esta usa `mh_s` y no `ms_s` (la de Monkey System).
 - **Login con Google en un dominio nuevo:** Bruno tiene que agregarlo como origen autorizado en el cliente OAuth («Grillas MonkeyLabs»). Sin eso, el botón de Google falla.
 - **Railway sin `GOOGLE_CLIENT_ID`** dejaría entrar a cualquiera como la cuenta de pruebas. Por eso `validar()` no deja arrancar.
 - **Railway guarda los cambios de configuración como borrador** hasta que se aplican (`get-staged-changes` y luego `accept-deploy`, con el OK de Bruno).
 - **Un ambiente de pruebas nunca se crea duplicando producción:** se copiarían sus claves. Se arma vacío, con claves propias.
-- **Puertos:** el 5000 lo ocupa el Receptor AirPlay del Mac. La plantilla usa el 5001, las herramientas desde el 5002 y las pruebas automáticas del 5900 al 5999.
+- **Puertos:** el 5000 lo ocupa el Receptor AirPlay del Mac. La plantilla usa el 5001, el prototipo de Paneo el 5002, esta herramienta el 5003 y las pruebas automáticas del 5900 al 5999.
+- **Clases CSS de las láminas:** `sistema.css` ya define `.dos`, `.tabla`, `.caja` y otras. Las láminas usan nombres propios (`.ldos`, `.rt`, `.s-pos`…); antes de agregar una clase en `reporte.css`, buscarla en `sistema.css`.
+- **El link del cliente** no lleva `Referer` ni se indexa (`no-referrer`, `noindex`). Cambiar el link (`nuevo-link`) invalida el anterior.
 - **Drive:** la plantilla no lo trae. Si la herramienta lo necesita, se copia `lib/drive.js` de monkey-system (real y simulado, con la misma interfaz) y se respeta `DRIVE_MODO`, que fuera de producción es siempre `simulado`. Carpetas con acceso limitado: primero se corta la herencia y después se agregan los editores.
 - **git:** `data/` y `.env` están en `.gitignore`. Datos, fotos o planillas de clientes nunca van al repo, porque lo que entra a git queda para siempre.
 - **El navegador de la app, con el panel oculto,** entrega capturas negras. Hay que medir con JavaScript (anchos, `scrollWidth`, posición de lo pegajoso).

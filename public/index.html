@@ -3,20 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lista de tareas · Monkey System</title>
+<title>Reportería RRSS · Monkey System</title>
 <link rel="icon" href="/assets/mnky.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/css/sistema.css">
+<link rel="stylesheet" href="/publico/reporte.css">
+<link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
 <div class="grain"></div><div class="glow"></div>
 <div class="app">
   <header class="barra">
     <a class="volver" data-monkey-system href="https://monkey-system-production.up.railway.app" title="Volver a Monkey System"><img src="/assets/iso.png" alt=""><span>Monkey System</span></a>
-    <a class="inicio" href="#tareas"><b>Lista de <em>tareas</em></b></a>
+    <a class="inicio" href="#reportes"><b>Reportería <em>RRSS</em></b></a>
     <nav class="tabs" id="tabs">
-      <a href="#tareas" data-v="tareas">Tareas</a>
+      <a href="#reportes" data-v="reportes">Reportes</a>
+      <a href="#clientes" data-v="clientes">Clientes</a>
       <a href="#papelera" data-v="papelera">Papelera</a>
       <a href="#actividad" data-v="actividad" data-solo-admin hidden>Actividad</a>
       <a href="/kit.html" data-fuera-de-produccion hidden>Kit de diseño</a>
@@ -25,6 +28,6 @@
   </header>
   <main class="principal" id="vista"></main>
 </div>
-<script type="module" src="/js/tareas.js"></script>
+<script type="module" src="/js/app.js"></script>
 </body>
 </html>

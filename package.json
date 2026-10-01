@@ -1,8 +1,8 @@
 {
-  "name": "herramienta-monkey",
+  "name": "reporteria-rrss",
   "version": "0.1.0",
   "private": true,
-  "description": "Plantilla para crear herramientas de Monkey System: mismo login, diseño y forma de publicar",
+  "description": "Reportería RRSS: reportes mensuales de redes orgánicas desde Metricool, para Monkey System (Digital Labs)",
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -13,5 +13,8 @@
     "pruebas": "MODO=pruebas node server.js",
     "test": "node --test test/*.test.js",
     "entrada": "node scripts/entrada.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.130.0"
   }
 }

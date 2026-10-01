@@ -1,0 +1,181 @@
+/* Láminas del reporte (constructor y link del cliente). Tamaño en em: 1em = 16px en una lámina de 1280 px de ancho.
+   Bajo 700 px de ancho (teléfono) la lámina deja el formato 16:9 y se reacomoda en una columna, con letra legible. */
+.laminas{display:flex;flex-direction:column;gap:28px;align-items:center;padding:24px 0 80px}
+.lamina{width:100%;max-width:1280px;container-type:inline-size;position:relative}
+.lienzo{position:relative;aspect-ratio:16/9;overflow:hidden;font-size:1.25cqw;background:#0B0A0C;color:var(--cream);border:1px solid var(--line-2);
+  padding:4.5em 4.5em 3em;display:flex;flex-direction:column;gap:1.2em;font-family:var(--disp);line-height:1.45}
+.lienzo::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(50% 45% at 0% 0%,rgba(81,33,104,.30),transparent 60%)}
+.lienzo > *{position:relative}
+.lienzo .iso{position:absolute;top:2.2em;right:2.5em;width:2.2em;opacity:.9}
+.kicker{font-family:var(--mono);font-size:.72em;letter-spacing:.2em;text-transform:uppercase;color:var(--pink);font-weight:600}
+.cab h2{font-size:2.9em;line-height:1;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-top:.25em}
+.cab h2 em{font-style:normal;color:var(--pink)}
+.label-s{display:block;font-family:var(--mono);font-size:.62em;letter-spacing:.16em;text-transform:uppercase;color:var(--dimmer);margin:.9em 0 .5em}
+.pie{font-size:.72em;color:var(--dimmer);margin-top:.8em;line-height:1.5}
+.acento{font-family:var(--accent);color:var(--pink);font-weight:600}
+
+/* portada y divisor */
+.portada .lienzo,.divisor .lienzo{justify-content:center}
+.port h1,.div-cont h1{font-size:5.2em;line-height:.95;font-weight:800;text-transform:uppercase;letter-spacing:-.03em;margin:.2em 0}
+.div-cont h1{color:var(--marca,var(--cream))}
+.port-mes{font-size:2.6em}
+.port-per{color:var(--dim);font-size:1em;margin-top:.6em}
+.port-redes{font-family:var(--mono);font-size:.8em;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:1.6em}
+
+/* columnas */
+.cols{display:grid;grid-template-columns:1fr 1.15fr;gap:2.6em;flex:1;min-height:0;align-items:start}
+.cols .col.ancha{grid-column:auto}
+.ldos .cols{grid-template-columns:.9fr 1.2fr}
+.caja{border:1px solid var(--line);background:rgba(255,255,255,.015);padding:1.1em 1.3em;font-size:.9em}
+.txt p + p{margin-top:.7em}
+.txt b{color:#fff}
+
+/* tablas */
+.rt{width:100%;border-collapse:collapse;font-size:.85em;border:1px solid var(--line)}
+.rt th{background:var(--cream);color:var(--ink);font-family:var(--mono);font-size:.72em;letter-spacing:.14em;text-transform:uppercase;text-align:left;padding:.75em 1em;font-weight:600}
+.rt td{padding:.6em 1em;border-top:1px solid var(--line);color:var(--dim)}
+.rt td.n{color:var(--cream);font-weight:700;white-space:nowrap}
+.rt td b{color:var(--cream)}
+.rt td small{color:var(--dimmer);font-weight:500;font-size:.8em}
+.rt tr.total td,.rt tr.propia td{background:rgba(252,50,151,.07);border-top:1px solid var(--cream)}
+.var{font-size:.85em;font-weight:700;color:var(--dim);margin-left:.4em}
+.var.sube{color:var(--ok)}
+.var.baja{color:var(--crit)}
+
+/* red: tabla a la izquierda, lectura y top a la derecha */
+.red-grid{display:grid;grid-template-columns:.85fr 1.5fr;gap:2em;flex:1;min-height:0}
+.red-izq .rt{font-size:.78em}
+.red-der{display:flex;flex-direction:column;min-width:0}
+.red-der .caja{font-size:.82em}
+.tops{display:grid;grid-template-columns:repeat(3,1fr);gap:.8em}
+.top{border:1px solid var(--line);padding:.8em .9em;display:flex;flex-direction:column;gap:.5em;font-size:.72em;min-width:0}
+.top-cab{display:flex;align-items:center;gap:.5em}
+.top .pos{color:var(--pink);font-size:1.6em;line-height:1}
+.tipo{border:1px solid var(--line);border-radius:99px;padding:.15em .6em;font-family:var(--mono);font-size:.78em;text-transform:uppercase;letter-spacing:.06em}
+.tipo.pauta{border-color:var(--warn);color:var(--warn)}
+.top .fecha{margin-left:auto;color:var(--dimmer)}
+.top-txt{font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.top dl{display:grid;grid-template-columns:repeat(3,1fr);gap:.5em}
+.top dt{font-family:var(--mono);font-size:.72em;letter-spacing:.08em;text-transform:uppercase;color:var(--dimmer)}
+.top dd{font-weight:700}
+.top .ver{color:var(--pink);font-size:.95em;margin-top:auto}
+
+/* funnel */
+.funnel{display:grid;grid-template-columns:1fr 1fr;gap:1em;margin-top:1.2em}
+.f-paso{border:1px solid var(--line);padding:1em 1.1em;display:flex;flex-direction:column}
+.f-paso .label-s{margin-top:0}
+.f-paso b{font-size:2em;line-height:1.1}
+.f-paso .var{margin:0 0 .3em}
+.f-paso small{font-size:.7em;color:var(--dimmer)}
+
+/* hallazgo */
+.hallazgo .lienzo{padding:0}
+.hemis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);flex:1;min-height:0}
+.hemi{display:flex;flex-direction:column;justify-content:center;gap:1.4em;padding:3.5em 3.2em;min-width:0}
+.hemi.ins{background:var(--pink);color:var(--ink)}
+.hemi.ins .kicker{color:var(--ink);opacity:.75}
+.hemi.evi{background:#0B0A0C;border-left:1px solid var(--line-2)}
+.txt.grande{font-family:var(--accent);font-size:2.5em;line-height:1.12;font-weight:600}
+.hemi.ins .txt.grande{color:var(--ink)}
+.txt.evidencia{font-size:1.15em;line-height:1.5;color:var(--cream)}
+.txt.evidencia p{padding-left:1em;border-left:3px solid var(--pink);margin:0 0 .9em}
+.hemi.ins .txt.editable.vacio::before{color:rgba(19,17,20,.55)}
+
+/* top contenidos: tres tarjetas con imagen */
+.tgs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.2em;flex:1;min-height:0}
+.tg{display:flex;flex-direction:column;border:1px solid var(--line);min-width:0;min-height:0}
+.tg-img{position:relative;height:15em;flex:none;background:#151216;display:flex;align-items:center;justify-content:center;overflow:visible}
+.tg-img img{width:100%;height:100%;object-fit:cover;display:block}
+.tg-img.vacia{width:100%;border:0;border-bottom:1px dashed var(--line);color:var(--pink);font:inherit;font-size:.9em;font-weight:700;cursor:pointer;flex-direction:column;gap:.3em}
+.tg-img.vacia small{color:var(--dimmer);font-weight:400}
+.top.tg-cuerpo{border:0;padding:.8em .9em;font-size:.8em;flex:1;min-height:0}
+.tg-cuerpo .top-txt{-webkit-line-clamp:2}
+.tg-img.sin span{font-family:var(--mono);font-size:.8em;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer)}
+@media print{.tg-img.vacia{visibility:hidden}}
+
+/* optimizaciones */
+.opts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4em;flex:1}
+.opt,.lista{border-top:2px solid var(--pink);padding-top:.3em;font-size:.95em}
+.lista ul{padding-left:1.1em;display:flex;flex-direction:column;gap:.5em}
+
+/* social listening */
+.esc-grid{display:grid;grid-template-columns:.8fr 1fr 1.1fr;gap:2em;flex:1;min-height:0;font-size:.9em}
+.esc-num > b{font-size:2.6em;line-height:1.1;display:block}
+.esc-num small{display:block;color:var(--dimmer);font-size:.8em}
+.senti{display:flex;height:.9em;border-radius:99px;overflow:hidden;background:var(--line)}
+.senti i,.senti-ley i{display:block}
+.s-pos{background:var(--ok)} .s-neu{background:var(--muted)} .s-neg{background:var(--crit)}
+.senti-ley{display:flex;flex-direction:column;gap:.2em;font-size:.78em;color:var(--dim);margin-top:.6em}
+.senti-ley span{display:flex;align-items:center;gap:.5em}
+.senti-ley i{width:.7em;height:.7em;border-radius:50%}
+.barras{display:flex;flex-direction:column;gap:.35em}
+.barra-f{display:grid;grid-template-columns:8em 1fr 3.4em;gap:.6em;align-items:center;font-size:.8em}
+.b-nom{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+.b-pista{height:.55em;background:var(--line-2)}
+.b-pista i{display:block;height:100%;background:var(--pink)}
+.b-v{text-align:right;font-weight:700}
+.nube{line-height:1.5;margin-bottom:1em;color:var(--cream)}
+.nube span{margin-right:.35em;font-weight:700}
+.nube span:nth-child(3n+1){color:var(--pink)}
+
+/* notas */
+.notas-l{padding-left:1.2em;display:flex;flex-direction:column;gap:.6em;font-size:.85em;color:var(--dim);max-width:60em}
+.falta{color:var(--warn);font-size:1.1em;max-width:36em}
+
+/* ---------- teléfono: una columna, alto libre ---------- */
+@container (max-width: 700px){
+  .lienzo{aspect-ratio:auto;font-size:14px;padding:2.4em 1.3em 2em;overflow:visible}
+  .lienzo .iso{top:1.2em;right:1.2em;width:1.8em}
+  .cab h2{font-size:2em}
+  .port h1,.div-cont h1{font-size:2.8em}
+  .port-mes{font-size:1.8em}
+  .portada .lienzo,.divisor .lienzo{min-height:60vh}
+  .cols,.ldos .cols,.red-grid,.opts-grid,.esc-grid,.tops,.tgs,.hemis{grid-template-columns:1fr}
+  .hemi{padding:2em 1.3em}
+  .hallazgo .lienzo{padding:0}
+  .tg-img{height:auto;aspect-ratio:4/5}
+  .rt{font-size:.85em}
+  .rt th,.rt td{padding:.55em .5em}
+  .rt th{letter-spacing:.04em;font-size:.62em}
+  .rt td.n{white-space:normal}
+  .rt td.n .var{display:block;margin-left:0}
+  .funnel{grid-template-columns:1fr 1fr}
+  .txt.grande{font-size:1.7em}
+  .top{font-size:.9em}
+}
+
+/* ---------- presentación: una lámina a pantalla completa ---------- */
+body.presentando{overflow:hidden;background:#000}
+body.presentando .laminas{position:fixed;inset:0;z-index:500;padding:0;background:#000;display:block}
+body.presentando .lamina{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(100vw,177.78vh);max-width:none}
+body.presentando .lamina.actual{display:block}
+body.presentando .lienzo{border:0}
+.contador{position:fixed;bottom:14px;right:18px;z-index:510;font-family:var(--mono);font-size:12px;color:var(--dimmer)}
+
+/* ---------- PDF (Imprimir → Guardar como PDF) ---------- */
+@page{size:1280px 720px;margin:0}
+@media print{
+  body{background:#0B0A0C !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body > *:not(.laminas):not(main),.no-imprimir,.franja-modo,.grain,.glow{display:none !important}
+  .laminas{display:block;padding:0}
+  .lamina{width:1280px;max-width:none;break-after:page;page-break-after:always}
+  .lienzo{width:1280px;height:720px;font-size:16px;border:0}
+  .txt.editable.vacio{display:none}
+}
+
+/* texto libre y láminas sin datos (estas solo se ven en el constructor) */
+.txt.titulo-libre{font-size:2.9em;line-height:1;font-weight:800;text-transform:uppercase;letter-spacing:-.02em;margin-top:.25em}
+.txt.texto-libre{font-size:1.1em;max-width:52em;color:var(--dim)}
+.aviso-l .lienzo{opacity:.75}
+
+/* cajas que agrega el equipo (texto o imagen): franja al final de la lámina; en la lámina en blanco, todo el espacio */
+.cajas { align-self: stretch; width: 100%; display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 1em; margin-top: 1.2em; }
+.cajas.n2 { --n: 2; } .cajas.n3 { --n: 3; } .cajas.n4 { --n: 4; }
+.caja-l { position: relative; min-width: 0; }
+.caja-l.imagen { margin: 0; display: flex; align-items: center; justify-content: center; }
+.caja-l.imagen img { max-width: 100%; max-height: 13em; object-fit: contain; border-radius: .4em; display: block; }
+.lamina.blanco .cajas { flex: 1; min-height: 0; }
+.lamina.blanco .caja-l.imagen img { max-height: 30em; }
+.caja-x { position: absolute; top: -.6em; right: -.6em; z-index: 2; width: 1.8em; height: 1.8em; border-radius: 50%; border: 1px solid rgba(246,236,226,.3); background: #131114; color: #F6ECE2; cursor: pointer; font-size: .8em; }
+.rt tr.manual td:first-child::after { content: ' ✎'; opacity: .45; font-size: .8em; }
+@container (max-width: 700px) { .cajas { grid-template-columns: 1fr; } .lamina.blanco .caja-l.imagen img, .caja-l.imagen img { max-height: none; } }

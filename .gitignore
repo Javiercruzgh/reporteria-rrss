@@ -5,3 +5,6 @@ data/
 !.env.example
 *.log
 .DS_Store
+
+# capturas sueltas en la raíz (las de verdad van en public/assets)
+/*.png
