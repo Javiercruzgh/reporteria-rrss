@@ -244,3 +244,25 @@ test('láminas: cajas de texto, imágenes, campos y aviso de cambios', async () 
     assert.ok(h.some(c => c.accion === 'subir imagen') && h.some(c => c.accion === 'editar reporte'));
   } finally { await s.parar(); }
 });
+
+test('paquete: un archivo crea los clientes que faltan y deja los reportes del mes con datos', async () => {
+  const s = await levantar('pruebas@monkeylabs.cl');
+  try {
+    const d = (await s.j('/api/clientes', { method: 'POST', body: { nombre: 'Alflorex', marcas: [{ nombre: 'Alflorex', blogId: '4369569', redes: ['instagram'] }] } })).body;
+    const marca = { redes: { instagram: { comunidad: 10, posts: [], reels: [], historias: [] } }, competencia: [] };
+    const paquete = { formato: 'reporteria-rrss/paquete', mes: '2026-09', hasta: '2026-09-30', clientes: [
+      { nombre: 'Alflorex', marcas: [{ nombre: 'Alflorex', blogId: '4369569', redes: ['instagram'] }], datos: { 4369569: { actual: marca, anterior: marca } } },
+      { nombre: 'Achs', escucha: true, reglas: { pautaTiktok: 50000 }, marcas: [{ nombre: 'Segurito', blogId: '3235340', redes: ['instagram'] }, { nombre: 'Achs Salud', blogId: '3235336', redes: ['instagram'] }],
+        datos: { 3235340: { actual: marca, anterior: marca }, 3235336: { actual: marca, anterior: marca } } }] };
+    assert.equal((await s.j('/api/paquete', { method: 'POST', body: { ...paquete, formato: 'otro' } })).status, 400);
+    const r = (await s.j('/api/paquete', { method: 'POST', body: paquete })).body;
+    assert.deepEqual(r.clientes.map(c => [c.cliente, c.nuevo, c.marcas]), [['Alflorex', false, 1], ['Achs', true, 2]]);
+    const achs = (await s.j('/api/clientes/achs')).body;
+    assert.equal(achs.config.reglas.pautaTiktok, 50000); assert.equal(achs.config.escucha, true);
+    const g = (await s.j('/api/reportes?mes=2026-09')).body.clientes;
+    assert.ok(g.every(c => c.reporte?.datosOrigen === 'conector'), 'los dos reportes quedan con datos');
+    // de nuevo: no duplica clientes ni reportes
+    assert.equal((await s.j('/api/paquete', { method: 'POST', body: paquete })).body.clientes.filter(c => c.nuevo).length, 0);
+    assert.equal((await s.j('/api/clientes')).body.clientes.length, 2); assert.ok(d.id);
+  } finally { await s.parar(); }
+});
