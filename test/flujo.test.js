@@ -217,14 +217,17 @@ test('láminas: cajas de texto, imágenes, campos y aviso de cambios', async () 
     const red = d.modelo.secciones.find(x => x.tipo === 'red'), kpi = d.modelo.marcas[0].redes[0].kpis[0].etiqueta;
     const lista = d.modelo.secciones.map(x => x.id === red.id ? { ...x, ocultos: [kpi], extra: [{ etiqueta: 'Ventas desde Instagram', valor: '45' }], bloques: [{ tipo: 'texto' }, { tipo: 'imagen', img }] } : x);
     lista.push({ tipo: 'blanco' });
+    const top = lista.find(x => x.tipo === 'top'); assert.ok(top, 'la propuesta trae el top de cada red');
+    top.imagenes = { [d.modelo.marcas[0].redes.find(x => x.red === top.red).top[0].id || '0']: img };
     d = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: lista } })).body;
     const sec = d.modelo.secciones.find(x => x.id === red.id);
+    assert.equal(Object.values(d.modelo.secciones.find(x => x.tipo === 'top').imagenes)[0], img);
     assert.deepEqual(sec.ocultos, [kpi]); assert.equal(sec.extra[0].valor, '45'); assert.equal(sec.bloques.length, 2);
     const caja = `${red.id}.b-${sec.bloques[0].id}`;
     assert.ok(d.claves.some(c => c.clave === caja && c.ia === false), 'la caja de texto es un espacio más, que escribe el equipo');
     d = (await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { textos: { [caja]: 'Texto de la caja' } } })).body;
     assert.equal(d.textos[caja], 'Texto de la caja');
-    const ajena = lista.map(x => x.id === red.id ? { ...x, bloques: [{ tipo: 'imagen', img: 'i0000000000000000' }] } : x);
+    const ajena = lista.map(x => x.id === top.id ? { ...x, imagenes: { a: 'i0000000000000000' } } : x);
     assert.equal((await s.j('/api/reportes/' + r.id, { method: 'PATCH', body: { secciones: ajena } })).status, 400, 'no acepta imágenes de otro reporte');
 
     const ruta = `/api/reportes/${r.id}/imagen/${img}`;

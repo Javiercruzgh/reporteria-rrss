@@ -111,14 +111,34 @@ const L = {
     return lamina('red', `${cabeza(`${MAYUS(m.nombreLargo)} · ${MAYUS(r.nombre)}`, r.nombre, 'del mes')}
       <div class="red-grid">
         <div class="red-izq">${tablaKpis(r, M.mesAnterior, s)}</div>
-        <div class="red-der">${txt(ctx, k(s, 'lectura'), { clase: 'caja', vacio: 'Lectura: qué explica las variaciones (piezas, formatos).' })}
-          ${r.top.length ? `<span class="label-s">Top contenidos${r.notaTop ? ` · ${esc(r.notaTop)}` : ''}</span><div class="tops">${r.top.map(tarjetaTop).join('')}</div>` : ''}</div>
+        <div class="red-der">${txt(ctx, k(s, 'lectura'), { clase: 'caja', vacio: 'Lectura: qué explica las variaciones (piezas, formatos).' })}</div>
       </div>`, `${m.nombre} · ${r.nombre}`, s.id);
   },
 
-  hallazgo: (M, s, ctx) => lamina('hallazgo', `${cabeza(`${MAYUS(nombreMarca(M, s))} · HALLAZGO`, 'Hallazgo', 'del mes')}
-    ${txt(ctx, k(s, 'hallazgo'), { clase: 'grande', vacio: 'Una sola idea que el cliente pueda repetir.' })}
-    ${txt(ctx, k(s, 'evidencia'), { clase: 'evidencia', vacio: 'La evidencia: los números que la prueban.' })}`, 'Hallazgo', s.id),
+  /* top 3 de una red: cada publicación con sus KPI y su imagen (la sube el equipo; sin imagen, al cliente no le queda un hueco) */
+  top(M, s, ctx) {
+    const m = marcaDe(M, s), r = m?.redes.find(x => x.red === s.red);
+    if (!r?.top.length) return sinDatos(M, s, ctx, 'Top contenidos', 'Esta red no tiene publicaciones en el período. Quita la lámina o actualiza los datos.');
+    const imgs = s.imagenes || {}, algunaImg = r.top.some((p, i) => imgs[p.id || String(i)]);
+    const tarjeta = (p, i) => {
+      const pid = p.id || String(i), img = imgs[pid];
+      const foto = img ? `<div class="tg-img">${ctx.editable ? `<button type="button" class="caja-x" data-quitar-img-post="${esc(pid)}" title="Quitar imagen">✕</button>` : ''}<img src="${esc(ctx.imagen(img))}" alt=""></div>`
+        : ctx.editable ? `<button type="button" class="tg-img vacia" data-img-post="${esc(pid)}">+ Imagen de la publicación<small>desde tu computador o Drive</small></button>`
+        : algunaImg ? `<div class="tg-img sin"><span>${esc(r.nombre)}</span></div>` : '';   // al cliente: el mismo alto, sin hueco
+      return `<article class="tg ${img ? 'con-img' : ''}">${foto}<div class="top tg-cuerpo">${tarjetaTop(p, i).replace(/^\s*<article class="top">|<\/article>\s*$/g, '')}</div></article>`;
+    };
+    return lamina('topl', `${cabeza(`${MAYUS(m.nombreLargo)} · ${MAYUS(r.nombre)}`, 'Top', 'contenidos')}
+      ${r.notaTop ? `<p class="pie">${esc(r.notaTop)}</p>` : ''}
+      <div class="tgs">${r.top.map(tarjeta).join('')}</div>`, `${m.nombre} · ${r.nombre} · Top`, s.id);
+  },
+
+  /* insight contra evidencia: dos hemisferios que contrastan (rosado a la izquierda, oscuro a la derecha) */
+  hallazgo: (M, s, ctx) => lamina('hallazgo', `<div class="hemis">
+      <div class="hemi ins"><span class="kicker">${MAYUS(nombreMarca(M, s))} · INSIGHT</span>
+        ${txt(ctx, k(s, 'hallazgo'), { clase: 'grande', vacio: 'Una sola idea que el cliente pueda repetir.' })}</div>
+      <div class="hemi evi"><span class="kicker">EVIDENCIA</span>
+        ${txt(ctx, k(s, 'evidencia'), { clase: 'evidencia', vacio: 'Los números que lo prueban: una idea por línea.' })}</div>
+    </div>`, 'Insight y evidencia', s.id),
 
   competencia(M, s, ctx) {
     const m = marcaDe(M, s);

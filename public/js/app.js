@@ -235,7 +235,7 @@ async function vistaReporte(el, id) {
     });
     if (!R.modelo.secciones.length) ls.innerHTML = '<button class="agregar no-imprimir" data-despues="">+ Agregar lámina</button>';
     ls.addEventListener('click', e => {
-      const b = e.target.closest('[data-mover],[data-quitar],[data-despues],[data-caja],[data-quitar-caja],[data-campos]'); if (!b) return;
+      const b = e.target.closest('[data-mover],[data-quitar],[data-despues],[data-caja],[data-quitar-caja],[data-campos],[data-img-post],[data-quitar-img-post]'); if (!b) return;
       e.stopPropagation();
       const lista = R.modelo.secciones.map(x => ({ ...x }));
       if (b.dataset.despues != null) return agregarLamina(lista, b.dataset.despues);
@@ -245,6 +245,8 @@ async function vistaReporte(el, id) {
       if (b.dataset.caja === 'imagen') return subirImagen(lista, i);
       if (b.dataset.quitarCaja) return guardarSecciones(lista.with(i, { ...s, bloques: (s.bloques || []).filter(x => x.id !== b.dataset.quitarCaja) }), 'Caja quitada.', sid);
       if (b.dataset.campos != null) return elegirCampos(lista, i);
+      if (b.dataset.imgPost) return subirImagen(lista, i, (x, img) => ({ ...x, imagenes: { ...(x.imagenes || {}), [b.dataset.imgPost]: img } }));
+      if (b.dataset.quitarImgPost) { const im = { ...(s.imagenes || {}) }; delete im[b.dataset.quitarImgPost]; return guardarSecciones(lista.with(i, { ...s, imagenes: im }), 'Imagen quitada.', sid); }
       if (b.dataset.quitar != null) {
         lista.splice(i, 1);
         return guardarSecciones(lista, 'Lámina quitada. Sus textos quedan guardados por si la vuelves a agregar.');
@@ -261,15 +263,14 @@ async function vistaReporte(el, id) {
     if (enfocar) $(`.lamina[data-sec="${CSS.escape(enfocar)}"]`, el)?.scrollIntoView({ block: 'center' });
   }
   /* imagen: se achica en el navegador (máximo 1600 px) antes de subirla */
-  function subirImagen(lista, i) {
+  function subirImagen(lista, i, poner = (s, img) => ({ ...s, bloques: [...(s.bloques || []), { tipo: 'imagen', img }] })) {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif';
     inp.onchange = () => { const f = inp.files[0]; if (!f) return;
       trabajar('Subiendo la imagen…', async () => {
         const cuerpo = await achicar(f);
         const r = await fetch(`/api/reportes/${id}/imagen`, { method: 'POST', headers: { 'Content-Type': cuerpo.type || 'application/octet-stream' }, body: cuerpo });
         const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'No se pudo subir la imagen.');
-        const s = lista[i];
-        R = await api('/api/reportes/' + id, { method: 'PATCH', body: { secciones: lista.with(i, { ...s, bloques: [...(s.bloques || []), { tipo: 'imagen', img: j.img }] }) } });
+        R = await api('/api/reportes/' + id, { method: 'PATCH', body: { secciones: lista.with(i, poner(lista[i], j.img)) } });
         toast('Imagen agregada.');
       });
     };

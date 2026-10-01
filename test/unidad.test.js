@@ -179,3 +179,14 @@ test('láminas: campos y cajas se validan', async () => {
   assert.throws(() => validar([{ tipo: 'blanco', bloques: Array(9).fill({ tipo: 'texto' }) }], cli), /Máximo 8/);
   assert.equal(validar([{ tipo: 'portada', ocultos: ['x'] }], cli)[0].ocultos, undefined, 'los campos son solo de las láminas de red');
 });
+
+test('láminas: cada red con datos trae su top y la marca su insight; el top guarda la imagen de cada publicación', async () => {
+  const { porDefecto, validar } = await import('../lib/secciones.js');
+  const M = { marcas: [{ id: 'x', competencia: [], redes: [{ red: 'instagram', top: [{ id: '1' }] }, { red: 'tiktok', top: [] }] }] };
+  const ids = porDefecto(M).map(s => s.id);
+  assert.ok(ids.includes('x-instagram-top') && !ids.includes('x-tiktok-top'), 'sin publicaciones no hay lámina de top');
+  assert.ok(ids.indexOf('x-instagram-top') === ids.indexOf('x-instagram') + 1 && ids.includes('x-hallazgo'));
+  const cli = { nombre: 'X', config: { marcas: [{ id: 'x', nombre: 'X', redes: ['instagram'] }] } };
+  const [t] = validar([{ id: 'x-instagram-top', tipo: 'top', marca: 'x', red: 'instagram', imagenes: { '3997131597904688164': 'i0123456789abcdef', '<script>': 'i0123456789abcdef', '2': 'javascript:x' } }], cli);
+  assert.deepEqual(t.imagenes, { '3997131597904688164': 'i0123456789abcdef' });
+});
